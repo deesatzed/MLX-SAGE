@@ -4,6 +4,21 @@ Architectural, scope, feature, and strategy decisions. Updated on change. Per AG
 
 Treat as project source of truth alongside EXPANSION_PLAN.md and ARCHITECTURE_MERGE.md.
 
+## 2026-08-04: Superintendant + WattOS v1 (H-track)
+
+**Decision:** Ship thin-wrapper Superintendant (Approach A) with PropellantLedger + WattOS end report on `nex supervise` and grok-claude/codex. H-track only (human product). No SI claims. No hardware watt meters in v1.
+
+**Rationale:**
+- Portfolio brainstorm locked recommended stack: daily-driver wrap + selective Grok + efficiency proof.
+- Build on existing PTY/policy/enforcer; add burn gate honesty (no burn without API; refund if remote not called).
+- WattOS brand = efficiency proof; v1 fields = wall, policy, blocks, reviews, escalations, propellant, local tok n/a for child agents.
+
+**Rejected for v1:** always-on daemon (Approach B), fleet, wiki/RAG, omlxurus router, mock Grok for CI.
+
+**Evidence:** design + plan under `docs/plans/2026-08-04-superintendant-wattos*`; pytest 8/8; demo PASS; see PROGRESS.
+
+---
+
 ## 2025 (this session): Needs-First Feature Gate (User Directive)
 **Decision**: Every new or refined feature must be derived from explicit, articulated unmet needs ("Features MUST be needs based. Lets think of Needs not being met by others first"). No tech-for-tech, no "wow" detached from pain.
 

@@ -765,32 +765,29 @@ def trace_gallery(
 def supervise(
     agent: str = typer.Argument(None, help="Agent to supervise: claude, codex, or custom command (optional with --install)"),
     workspace: str = typer.Option(".", "--workspace", "-w", help="Workspace dir (use temp for safety)"),
-    grok_in_loop: bool = typer.Option(False, "--grok-in-loop", help="Enable real Grok escalation"),
+    grok_in_loop: bool = typer.Option(False, "--grok-in-loop", help="Deprecated synonym for --grok; enable Grok escalation"),
+    use_grok: bool = typer.Option(True, "--grok/--no-grok", help="Allow Grok escalation on REVIEW when API key present"),
+    max_grok: int = typer.Option(3, "--max-grok", help="Propellant: max Grok escalations this session"),
+    on_empty: str = typer.Option(
+        "human_or_block",
+        "--on-empty",
+        help="When propellant empty on REVIEW: human_or_block | block | allow_local_only",
+    ),
+    wattos: bool = typer.Option(True, "--wattos/--no-wattos", help="Print WattOS end report"),
     install: bool = typer.Option(False, "--install", help="One-command setup: install aliases/hooks so your daily claude/codex always use Grok-in-the-Loop (needs-based permanent adoption)"),
 ):
     """
-    Extra Big Wow: Supervise real external AI coding agents (.claude / .codex / Claude Code / Cursor / Codex)
-    under full Sentinel policy + Grok-in-the-Loop + traces.
-
-    Borrows PTY runner, trust prompt injection, interaction patterns, and real-agent harness concepts
-    directly from gemOptq's battle-tested scripts (real_agent_smoke.py, PtyAgentRunner).
+    Superintendant: supervise real external AI coding agents under Sentinel policy,
+    propellant-capped Grok escalation, and WattOS end report.
 
     Examples:
       nex supervise claude .
-      nex supervise codex --workspace /tmp/safe-test --grok-in-loop
-      nex supervise --install   # makes it permanent for your shell (aliases + hooks)
+      nex supervise codex --workspace /tmp/safe-test --grok --max-grok 3
+      nex supervise --install
     """
-    from .sentinel.pty_runner import PtyAgentRunner
-    from .sentinel.policy import SentinelPolicy
-    from .sentinel.enforcer import FileEffectObserver, ContinuousEnforcer
-    from .sentinel.grok_auditor import GrokAugmentedAuditor
-    from .engine import Engine
     import tempfile
-    import re
 
     if install:
-        # One-command needs-based permanent adoption (solves "keep using the exact agents I already know without changing workflow")
-        import os
         from pathlib import Path
         home = Path.home()
         grok_dir = home / ".grok"
@@ -816,17 +813,17 @@ alias codex='grok-codex'
         print("This directly fulfills the top unmet need: keep the powerful agents you already use, just make them safe/auditable/Grok-augmented.")
         return
 
+    if agent is None:
+        console.print("[red]Provide an agent (claude, codex, or a command) or use --install[/red]")
+        raise typer.Exit(1)
+
     if agent not in ("claude", "codex"):
         console.print(f"[yellow]Custom agent supervision: {agent}. Using PTY + policy + Grok.[/yellow]")
 
-    engine = Engine()
-    policy = SentinelPolicy()
-    auditor = GrokAugmentedAuditor(engine, use_grok=grok_in_loop)
+    effective_grok = bool(use_grok or grok_in_loop)
 
-    # Borrow disposable workspace pattern from gemOptq for safety
     if workspace == ".":
-        tmp = tempfile.mkdtemp(prefix="grok-supervise-")
-        workspace = tmp
+        workspace = tempfile.mkdtemp(prefix="grok-supervise-")
         console.print(f"[dim]Using disposable workspace: {workspace}[/dim]")
 
     cmd_map = {
@@ -835,100 +832,425 @@ alias codex='grok-codex'
     }
     cmd = cmd_map.get(agent, agent)
 
-    console.print(f"[bold cyan]Starting Grok-Supervised {agent}[/bold cyan]: {cmd}")
-    console.print("Real ContinuousEnforcer + policy gates + Grok escalation active. Full traces. Ctrl-C to kill.")
+    from .superintend import run_supervised_session
 
-    runner = PtyAgentRunner(cmd, cwd=workspace)
-    runner.start()
-
-    # Real ContinuousEnforcer + observer (real fs diffs, not heuristics)
-    observer = FileEffectObserver(workspace)
-    observer.snapshot()
-    enforcer = ContinuousEnforcer(
-        policy=policy,
-        observer=observer,
-        grok_escalator=auditor.grok if hasattr(auditor, "grok") else None,
-        on_block=lambda dec, effs: console.print(f"[ENFORCER BLOCK] {dec.reason} for {effs}"),
+    code = run_supervised_session(
+        cmd=cmd,
+        workspace=workspace,
+        agent_label=str(agent),
+        max_grok=max_grok,
+        use_grok=effective_grok,
+        on_empty=on_empty,
+        wattos=wattos,
+        trust_agent=agent if agent in ("claude", "codex") else None,
     )
-    enforcer.start()
-
-    # Real counters for needs-based "what did the supervision layer deliver?" report
-    grok_escalations = 0
-    blocks = 0
-    reviews = 0
-    policy_decisions = 0
-    t0 = __import__("time").time()
-
-    try:
-        while runner.is_alive():
-            output = runner.get_output(timeout=0.3)
-            if output:
-                console.print(f"[{agent.upper()}] {output.strip()[:120]}")
-
-                # Real effects via ContinuousEnforcer observer (replaces text heuristics)
-                decision = enforcer.check_once() or policy.evaluate([])  # authoritative from real diff
-                policy_decisions += 1
-
-                # Also feed output text for trust prompts (complementary to fs effects)
-                if decision.action.value in ("review", "confirm"):
-                    grok = auditor.audit(f"{agent} action", output, risk=decision.risk)
-                    grok_escalations += 1
-                    if grok.get("verdict") == "block":
-                        blocks += 1
-                    else:
-                        reviews += 1
-                    console.print(f"[GROK] {grok.get('verdict')}: {grok.get('reason', '')[:80]}")
-
-                    # Construct real PendingApproval (makes the dataclass live for queue / TUI / traces)
-                    try:
-                        from .sentinel.policy import PendingApproval as SentinelPending  # reuse or alias
-                        # Note: our TUI PendingApproval is compatible; here we just surface
-                        pa = type('obj', (object,), {"prompt_line": output[:80], "file_effects": [], "policy_decision": decision, "grok_verdict": grok.get("verdict")})()
-                        console.print(f"[PENDING APPROVAL] {pa.policy_decision.action} | grok={pa.grok_verdict}")
-                    except Exception:
-                        pass
-
-                    if grok.get("verdict") == "block":
-                        runner.write_input("n\n")
-                        continue
-
-                # Borrowed trust/approval injection patterns from gemOptq real_agent_smoke
-                if agent == "claude" and re.search(r"trust|confirm|exit", output, re.I):
-                    runner.write_input("n\n")  # safe default, or based on grok/policy
-                if agent == "codex" and re.search(r"trust|proceed|run", output, re.I):
-                    runner.write_input("y\n")
-    except KeyboardInterrupt:
-        console.print("\n[Sentinel] Killed by user.")
-    finally:
-        enforcer.stop()
-        runner.kill()
-        wall = __import__("time").time() - t0
-        _print_supervise_report(agent, grok_escalations, blocks, reviews, policy_decisions, wall, workspace)
-        console.print("[Sentinel] Supervision ended. Replay with: nex trace <trace-file>")
+    if code != 0:
+        raise typer.Exit(code)
 
 
-def _print_supervise_report(agent: str, grok_escalations: int, blocks: int, reviews: int, policy_decisions: int, wall: float, workspace: str) -> None:
-    """Real end-of-supervise report for the Extra Big Wow need.
+# ------------------------------------------------------------------
+# sage — Protocol Sage Partner (personal partnership protocol)
+# ------------------------------------------------------------------
 
-    User who runs `nex supervise claude .` (or grok-claude) keeps their exact daily driver
-    but now sees concrete evidence of the value the layer added: how many times policy/Grok
-    stepped in, how long the session ran, full trace available. This is the proof point for
-    "I don't have to abandon the agent I already love".
-    """
-    from rich.table import Table
+sage_app = typer.Typer(
+    name="sage",
+    help="Protocol Sage Partner: standing partnership for purpose — not a companion sim",
+    add_completion=False,
+)
+app.add_typer(sage_app, name="sage")
+
+
+@sage_app.command("tui")
+def sage_tui(
+    profile: str = typer.Option("default", "--profile", "-p"),
+    model: str = typer.Option(
+        "",
+        "--model",
+        "-m",
+        help="Local model path (default: first complete MLX model found)",
+    ),
+):
+    """Conversational Sage Partner TUI — dialogue with local model + your memory."""
+    from .sage.tui import run_sage_tui
+    from .sage.dialog import list_models_report
+    from .sage.local_models import pick_default_local
+
+    if not model:
+        m = pick_default_local()
+        if not m:
+            console.print("[red]No complete local MLX chat model found.[/red]")
+            console.print(list_models_report())
+            raise typer.Exit(1)
+        console.print(f"[dim]Using local model: {m.label} ({m.size_gb} GB)[/dim]")
+        model = m.path
+    run_sage_tui(profile_id=profile, model_path=model or None)
+
+
+@sage_app.command("models")
+def sage_models():
+    """List local MLX models discovered on this machine."""
+    from .sage.dialog import list_models_report
+
+    console.print(list_models_report())
+
+
+@sage_app.command("init")
+def sage_init(
+    profile: str = typer.Option("default", "--profile", "-p"),
+    values: str = typer.Option(
+        "contribution and mattering over status display",
+        "--values",
+    ),
+    orientation: str = typer.Option(
+        "beyond isolated ego — purpose with partners in a small hive",
+        "--orientation",
+        "-o",
+    ),
+):
+    """Create or show a standing sage partner profile."""
+    from .sage.partner import load_or_create_profile, REFUSALS
     from rich.panel import Panel
 
-    table = Table(title=f"Supervised {agent} — Safety & Oversight Report", show_header=False, box=None)
-    table.add_row("workspace", str(workspace))
-    table.add_row("wall time (s)", f"{wall:.1f}")
-    table.add_row("policy decisions (observed)", str(policy_decisions))
-    table.add_row("grok escalations", str(grok_escalations))
-    table.add_row("blocks", str(blocks))
-    table.add_row("reviews (incl human)", str(reviews))
-    table.add_row("note", "external agent tokens hidden (black box); wrapper provided policy + Grok + injection + trace")
+    prof = load_or_create_profile(profile, values_note=values, orientation=orientation)
+    # refresh values if re-init
+    prof.values_note = values
+    prof.orientation = orientation
+    path = prof.save()
+    console.print(Panel(prof.sage_role, title=f"Sage partner [{prof.profile_id}]", border_style="cyan"))
+    console.print(f"[dim]values:[/dim] {prof.values_note}")
+    console.print(f"[dim]orientation:[/dim] {prof.orientation}")
+    console.print("[dim]refusals:[/dim]")
+    for r in REFUSALS:
+        console.print(f"  • {r}")
+    console.print(f"[dim]profile:[/dim] {path}")
 
-    console.print(Panel(table, border_style="green", title="Extra Big Wow: real external agent under deterministic policy + Grok escalation (no workflow change for you)"))
-    console.print("[dim]This report + the full trace is what no other local or cloud agent supervisor gives you today for the tools you already use.[/dim]\n")
+
+@sage_app.command("people")
+def sage_people(
+    action: str = typer.Argument("list", help="list | add"),
+    name: str = typer.Option("", "--name"),
+    relation: str = typer.Option("", "--relation"),
+    need_me: str = typer.Option("", "--they-need-me", help="they may need me for"),
+    i_need: str = typer.Option("", "--i-need", help="I need them for"),
+    profile: str = typer.Option("default", "--profile", "-p"),
+):
+    """Mattering map — real humans; updates your direction."""
+    from .sage.partner import PersonStub, load_or_create_profile
+    from rich.panel import Panel
+    from rich.table import Table
+
+    prof = load_or_create_profile(profile)
+    if action == "add":
+        if not name or not relation:
+            console.print("[red]--name and --relation required for add[/red]")
+            raise typer.Exit(2)
+        dpath = prof.add_person(
+            PersonStub(
+                name=name,
+                relation=relation,
+                they_may_need_me_for=need_me,
+                i_need_them_for=i_need,
+            )
+        )
+        d = prof.build_direction()
+        console.print(f"[green]Person on map[/green] {name} ({relation})")
+        console.print(Panel(d.get("north_star", ""), title="Your direction (updated)", border_style="cyan"))
+        console.print(f"[dim]direction → {dpath}[/dim]")
+        return
+    table = Table(title=f"People (mattering) — {prof.profile_id}")
+    table.add_column("Name")
+    table.add_column("Relation")
+    table.add_column("They may need me")
+    table.add_column("I need them")
+    for person in prof.people:
+        table.add_row(
+            person.name,
+            person.relation,
+            person.they_may_need_me_for,
+            person.i_need_them_for,
+        )
+    console.print(table)
+    if not prof.people:
+        console.print("[dim]Add: nex sage people add --name … --relation … --they-need-me … --i-need …[/dim]")
+
+
+@sage_app.command("sit")
+def sage_sit(
+    situation: str = typer.Argument(..., help="What you are holding right now"),
+    co_goal: str = typer.Option(..., "--co-goal", "-g", help="Shared co-goal for this turn"),
+    human: str = typer.Option("advanced", "--human"),
+    ai: str = typer.Option("neutral", "--ai"),
+    shared: str = typer.Option("advanced", "--shared"),
+    mode: str = typer.Option("default", "--mode"),
+    notes: str = typer.Option("", "--notes"),
+    reflection: str = typer.Option("", "--reflect", "-r", help="Your answer — shapes direction"),
+    profile: str = typer.Option("default", "--profile", "-p"),
+    require_pass: bool = typer.Option(True, "--require-pass/--allow-fail"),
+):
+    """Partnership turn → joint beneficence → prompts → living direction."""
+    from .sage.partner import load_or_create_profile
+    from rich.panel import Panel
+
+    prof = load_or_create_profile(profile)
+    entry = prof.sit(
+        situation,
+        co_goal=co_goal,
+        human_effect=human,
+        ai_effect=ai,
+        shared_effect=shared,
+        mode=mode,
+        notes=notes,
+        reflection=reflection,
+    )
+    style = "green" if entry["ok"] else "red"
+    console.print(Panel(entry["beneficence"]["summary"], border_style=style, title="Joint beneficence"))
+    console.print("[bold]Partnership prompts:[/bold]")
+    for i, q in enumerate(entry["counsel_prompts"], 1):
+        console.print(f"  {i}. {q}")
+    direction = entry.get("direction") or {}
+    if direction.get("north_star"):
+        console.print(Panel(direction["north_star"], title="Your direction", border_style="cyan"))
+        acts = direction.get("next_acts") or direction.get("suggested_moves") or []
+        if acts:
+            console.print("[bold]Next acts[/bold]")
+            for a in acts[:5]:
+                console.print(f"  • {a}")
+    console.print(f"[dim]sit={entry['sit_id']} · {entry.get('direction_path')}[/dim]")
+    if require_pass and not entry["ok"]:
+        raise typer.Exit(2)
+
+
+@sage_app.command("reflect")
+def sage_reflect(
+    text: str = typer.Argument(..., help="What you take from the last sit / life"),
+    profile: str = typer.Option("default", "--profile", "-p"),
+):
+    """Add your words to the living direction."""
+    from .sage.partner import load_or_create_profile
+    from rich.panel import Panel
+
+    prof = load_or_create_profile(profile)
+    sits = [s for s in prof.sit_log if s.get("sit_id")]
+    sit_id = sits[-1]["sit_id"] if sits else ""
+    dpath = prof.add_reflection(text, sit_id=sit_id)
+    d = prof.build_direction()
+    console.print(Panel(d.get("north_star", ""), title="Your direction", border_style="cyan"))
+    console.print(f"[dim]direction → {dpath}[/dim]")
+
+
+@sage_app.command("commit")
+def sage_commit(
+    text: str = typer.Argument(..., help="Concrete act you own"),
+    toward: str = typer.Option(..., "--toward", "-t", help="Real person name or shared_good"),
+    due: str = typer.Option("", "--due"),
+    profile: str = typer.Option("default", "--profile", "-p"),
+):
+    """Record a commitment; refresh direction."""
+    from .sage.partner import Commitment, load_or_create_profile
+    from rich.panel import Panel
+
+    prof = load_or_create_profile(profile)
+    dpath = prof.add_commitment(Commitment(text=text, toward_person=toward, due=due))
+    d = prof.build_direction()
+    console.print(f"[green]Commitment[/green] toward {toward}: {text}")
+    console.print(Panel(d.get("north_star", ""), title="Your direction", border_style="cyan"))
+    console.print(f"[dim]direction → {dpath}[/dim]")
+
+
+@sage_app.command("done")
+def sage_done(
+    match: str = typer.Argument(..., help="Substring of commitment text, person, or id"),
+    profile: str = typer.Option("default", "--profile", "-p"),
+):
+    """Mark a commitment complete; refresh direction."""
+    from .sage.partner import load_or_create_profile
+    from rich.panel import Panel
+
+    prof = load_or_create_profile(profile)
+    c = prof.complete_commitment(match=match)
+    if not c:
+        console.print(f"[red]No open commitment matching[/red] {match!r}")
+        raise typer.Exit(2)
+    d = prof.build_direction()
+    console.print(f"[green]Done[/green] {c.text} → {c.toward_person}")
+    console.print(Panel(d.get("north_star", ""), title="Your direction", border_style="cyan"))
+
+
+@sage_app.command("receipt")
+def sage_receipt(
+    profile: str = typer.Option("default", "--profile", "-p"),
+    last: int = typer.Option(3, "--last", help="How many sits to show"),
+):
+    """Show profile, recent sits, open commitments, and current north star."""
+    from .sage.partner import load_or_create_profile
+    import json
+    from rich.panel import Panel
+
+    prof = load_or_create_profile(profile)
+    open_c = [c for c in prof.commitments if not c.done]
+    recent = [s for s in prof.sit_log if s.get("sit_id")][-last:]
+    d = prof.build_direction()
+    console.print(Panel(prof.sage_role, title=f"Sage partner [{prof.profile_id}]", border_style="cyan"))
+    console.print(Panel(d.get("north_star", ""), title="North star", border_style="green"))
+    console.print(f"people: {len(prof.people)} | open commitments: {len(open_c)} | sits: {len([s for s in prof.sit_log if s.get('sit_id')])}")
+    console.print(f"values: {prof.values_note}")
+    if recent:
+        console.print("[bold]Recent sits[/bold]")
+        for s in recent:
+            flag = "ok" if s.get("ok") else "redirect"
+            console.print(f"  [{flag}] {s.get('co_goal')}")
+    if open_c:
+        console.print("[bold]Open commitments[/bold]")
+        for c in open_c:
+            console.print(f"  • [{c.toward_person}] {c.text}" + (f" (due {c.due})" if c.due else ""))
+
+
+@sage_app.command("direction")
+def sage_direction(
+    profile: str = typer.Option("default", "--profile", "-p"),
+    show: bool = typer.Option(True, "--show/--no-show", help="Print markdown to terminal"),
+):
+    """Build and show personalized direction from your people, sits, and commits."""
+    from .sage.partner import load_or_create_profile, render_direction_markdown
+    from rich.markdown import Markdown
+
+    prof = load_or_create_profile(profile)
+    path = prof.write_direction()
+    md = render_direction_markdown(prof.build_direction())
+    if show:
+        try:
+            console.print(Markdown(md))
+        except Exception:
+            console.print(md)
+    console.print(f"[green]Direction[/green] → {path}")
+
+
+@sage_app.command("export")
+def sage_export(
+    profile: str = typer.Option("default", "--profile", "-p"),
+    show: bool = typer.Option(True, "--show/--no-show"),
+):
+    """Export a shareable pack (direction + people + commits + recent sits)."""
+    from .sage.partner import load_or_create_profile
+    from rich.markdown import Markdown
+
+    prof = load_or_create_profile(profile)
+    path = prof.export_pack()
+    if show:
+        try:
+            console.print(Markdown(path.read_text(encoding="utf-8")))
+        except Exception:
+            console.print(path.read_text(encoding="utf-8"))
+    console.print(f"[green]Export pack[/green] → {path.parent}")
+
+
+# ------------------------------------------------------------------
+# we — hive cell partnership (mission: purpose with AI)
+# ------------------------------------------------------------------
+
+we_app = typer.Typer(
+    name="we",
+    help="Hive cell: human–AI partnership session with co-goal, roles, joint beneficence, receipt",
+    add_completion=False,
+)
+app.add_typer(we_app, name="we")
+
+
+@we_app.command("constitution")
+def we_constitution():
+    """Print the mission constitution (partnership, hive, selfless, joint beneficence)."""
+    from .mission import print_constitution
+    print_constitution(console)
+
+
+@we_app.command("start")
+def we_start(
+    co_goal: str = typer.Argument(..., help="Shared co-goal for this hive cell"),
+    orientation: str = typer.Option(
+        "beyond isolated ego — contribution to shared good",
+        "--orientation",
+        "-o",
+        help="Self-transcendent orientation note",
+    ),
+    human: str = typer.Option("advanced", "--human", help="Beneficence: advanced|neutral|harmed"),
+    ai: str = typer.Option("neutral", "--ai", help="Beneficence for AI partner role"),
+    shared: str = typer.Option("advanced", "--shared", help="Beneficence for shared/third good"),
+    mode: str = typer.Option("default", "--mode", help="default|strict joint beneficence"),
+    notes: str = typer.Option("", "--notes", help="Why these effects"),
+    require_pass: bool = typer.Option(
+        True,
+        "--require-pass/--allow-fail",
+        help="Exit non-zero if joint beneficence fails",
+    ),
+):
+    """Start a hive cell: roles + joint beneficence gate + save receipt."""
+    from .hive.cell import create_cell
+    from .mission import print_constitution
+    from rich.panel import Panel
+    from rich.table import Table
+
+    print_constitution(console)
+    cell = create_cell(co_goal, orientation=orientation)
+    result = cell.set_beneficence(
+        human=human,
+        ai_partner=ai,
+        shared_or_third=shared,
+        mode=mode,
+        notes=notes or None,
+    )
+    cell.log_contribution("human", "declared co-goal and orientation", co_goal)
+    cell.log_contribution("ai", "role reserved: assist within limits", cell.roles[1].responsibility)
+    path = cell.save()
+
+    table = Table(title=f"Hive cell {cell.cell_id}", show_header=True)
+    table.add_column("Party")
+    table.add_column("Name")
+    table.add_column("Needed for")
+    for r in cell.roles:
+        table.add_row(r.party, r.name, r.needed_for)
+    console.print(table)
+    style = "green" if result.ok else "red"
+    console.print(Panel(result.summary + "\n" + "\n".join(result.reasons), border_style=style, title="Joint beneficence"))
+    console.print(f"[dim]Receipt:[/dim] {path}")
+    console.print(f"[dim]Co-goal:[/dim] {cell.co_goal}")
+    if require_pass and not result.ok:
+        raise typer.Exit(2)
+
+
+@we_app.command("check")
+def we_check(
+    human: str = typer.Option(..., "--human"),
+    ai: str = typer.Option(..., "--ai"),
+    shared: str = typer.Option(..., "--shared"),
+    mode: str = typer.Option("default", "--mode"),
+    notes: str = typer.Option("", "--notes"),
+):
+    """Evaluate joint beneficence without creating a cell."""
+    from .mission import evaluate_joint_beneficence
+    from rich.panel import Panel
+
+    r = evaluate_joint_beneficence(
+        human=human,
+        ai_partner=ai,
+        shared_or_third=shared,
+        mode=mode,
+        notes=notes or None,
+    )
+    style = "green" if r.ok else "red"
+    console.print(Panel(r.summary + "\n" + "\n".join(r.reasons), border_style=style, title="Joint beneficence"))
+    if not r.ok:
+        raise typer.Exit(2)
+
+
+@we_app.command("receipt")
+def we_receipt(
+    cell_id: str = typer.Argument(..., help="Cell id (hive-… )"),
+):
+    """Print a saved hive cell receipt."""
+    from .hive.cell import load_cell
+    import json
+    cell = load_cell(cell_id)
+    console.print_json(json.dumps(cell.receipt(), indent=2))
 
 
 # ------------------------------------------------------------------

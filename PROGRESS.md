@@ -3,9 +3,65 @@
 Source of truth per AGENTS.md (Codex Operating Rules). Updated after meaningful work. No time/cost estimates.
 
 ## Current Focus (this session)
-"Features MUST be needs based. Lets think of Needs not being met by others first." + "keep pushing" + "Extra Big Wow".
+Destination: purpose via partnership + hives + joint beneficence + selfless.
+**Protocol Sage Partner v0** built on Hive Cell.
 
-All work starts from explicit unmet user needs articulated in README, ARCHITECTURE_MERGE, EXPANSION_PLAN, showpiece docs (e.g. "keep using the exact agents I already know without workflow change", "see real efficiency + proof that Grok is only used when it adds value", "deterministic safety + audit that survives scrutiny", "tokens-per-watt reality for agentic workloads on Apple Silicon").
+## Protocol Sage Partner (2026-08-05)
+
+- **TUI conversation:** `nex sage tui` — Textual chat + local MLX + profile memory
+- **Model discovery:** `nex sage models` — only complete weights; tested **Llama-3.2-3B-Instruct-4bit** real reply
+- Dialog system prompt uses values, people, direction, commitments (non-prescriptive partner)
+- Chat history: `sessions/sage/<id>/chat.jsonl`
+- Structured helpers remain (sit/commit/direction/export)
+- 27B/35B HF cache entries incomplete on disk (not used)
+
+## Hive Cell v0 + joint beneficence (2026-08-04)
+
+- Mission freeze: docs/sessions destination brainstorm (good enough + joint beneficence)
+- `nex/mission.py` — constitution text + `evaluate_joint_beneficence`
+- `nex/hive/cell.py` — co-goal, roles (human/ai/shared), beneficence gate, FS receipt
+- `nex/cli.py` — `we constitution|start|check|receipt`
+- `scripts/hive_cell_demo.py` — purpose pass vs ego fail
+- Tests: `tests/test_joint_beneficence.py` (6), `tests/test_hive_cell.py` (2) — **8/8 PASS**
+- Demo PASS; live `we start` wrote `sessions/hive/hive-*.json`
+
+Not claimed: installs meaning; AI consciousness; full hive runtime with multi-agent execution.
+
+---
+
+## Prior: Superintendant + WattOS v1
+
+## Superintendant + WattOS (2026-08-04) — verified
+
+- **Design:** `docs/plans/2026-08-04-superintendant-wattos-design.md`
+- **Plan:** `docs/plans/2026-08-04-superintendant-wattos.md`
+- **Code:**
+  - `nex/propellant.py` — PropellantLedger
+  - `nex/wattos.py` — WattOSReport + render/print
+  - `nex/superintend.py` — shared PTY + policy + propellant + WattOS loop
+  - `nex/cli.py` — `supervise` flags: `--max-grok`, `--grok/--no-grok`, `--on-empty`, `--wattos`
+  - `scripts/grok_claude.py`, `scripts/grok_codex.py` — same flags + WattOS
+  - `scripts/wattos_superintendant_demo.py` — real demo (no mock Grok)
+  - `tests/test_propellant.py`, `tests/test_wattos.py`
+
+### Verification evidence (real runs, no mocks)
+
+| ID | Result | Evidence |
+|----|--------|----------|
+| V1 | PASS | `pytest tests/test_propellant.py` — 5/5 |
+| V2 | PASS | `pytest tests/test_wattos.py` — 3/3 (n/a not fake 0) |
+| V3 | PASS | `nex supervise --help` shows max-grok, wattos, on-empty, --grok |
+| V4 | PASS | `python scripts/wattos_superintendant_demo.py --max-grok 0 --no-grok` exit 0; WattOS panel printed |
+| V5 | PASS | Demo: policy BLOCK on `.env`; session policy decisions ≥ 1, blocks ≥ 1 |
+| V6 | PARTIAL | Ledger max=0 denies in unit test + demo `_assert_propellant_zero`. Session path with `--no-grok` does not increment `propellant_denied` (short-circuits before burn). With key + `--max-grok 0` on REVIEW would deny. Action: acceptable for v1; document honesty. |
+| V7 | PASS | Demo `--no-grok` → `grok status: disabled (--no-grok)`; no key path is `skipped (no key)` when grok on |
+| V8 | SKIPPED | Optional; no `XAI_API_KEY` exercised this session |
+| V9 | PASS | `nex supervise --install` prints alias block; hooks copied |
+
+### Remaining
+- Optional Task 7: unify `nex agent` end report through WattOSReport (local tokens filled)
+- V8 when key present
+- True hardware watt meters still **not** claimed (brand = efficiency proof)
 
 ## Recent Completed Work (validated)
 - Full repo inspection (list, reads of AGENTS.md, Claude.md, EXPANSION_PLAN.md, ARCHITECTURE_MERGE.md, README.md needs sections, key source: tui.py, cli.py, agent.py, engine.py, pty_runner.py, grok_claude.py, session.py, persistence.py).
