@@ -41,14 +41,14 @@
     {
       "id": "A-0004",
       "text": "Nex TUI approval queue decisions come from real SentinelPolicy.evaluate (user-visible implication).",
-      "source": "nex/tui.py:266-268 fake_dec; stats_text Sentinel+policy active",
+      "source": "nex/tui_policy.py decide_tool_gate; nex/tui.py _handle_tool_call (post-P0 2026-08-07)",
       "risk": "HIGH",
-      "status": "invalidated",
-      "verification_method": "Trace tool path; forensics 2026-08-07",
+      "status": "validated",
+      "verification_method": "tests/test_tui_tool_policy.py; grep no fake_dec",
       "created_at": "2026-08-07",
       "last_reviewed_at": "2026-08-07",
-      "validated_by": null,
-      "invalidated_reason": "fake_fx/fake_dec constructed without policy.evaluate; a/b/o do not gate tools"
+      "validated_by": "pytest 28/28 + code review 5fa3b70",
+      "invalidated_reason": null
     },
     {
       "id": "A-0005",
