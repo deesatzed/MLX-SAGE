@@ -6,6 +6,15 @@ Source of truth per AGENTS.md (Codex Operating Rules). Updated after meaningful 
 Destination: purpose via partnership + hives + joint beneficence + selfless.
 **Protocol Sage Partner v0** built on Hive Cell.
 
+## Decisions locked 2026-08-07 (user)
+1. Commit onboard artifacts · 2. Wire Nex TUI approvals to **real** SentinelPolicy · 3. **Sage-first** product identity · 4. CI **after** P0.
+
+### P0 validation (2026-08-07)
+- `nex/tui_policy.py` + `nex/tui.py`: tool path uses `decide_tool_gate` → ALLOW auto-exec, REVIEW/CONFIRM queue (no exec until a/o), BLOCK never exec; override re-evals (hard blocks like `.env` still win). No `fake_dec`/`fake_fx`.
+- `SentinelPolicy._override_decision` real session overrides.
+- `LICENSE` MIT present; `pyproject` + CLI help + `nex/__init__` Sage-first.
+- Tests: `pytest tests/` **28/28** (includes `tests/test_tui_tool_policy.py`).
+
 ## Protocol Sage Partner (2026-08-05)
 
 - **TUI conversation:** `nex sage tui` — Textual chat + local MLX + profile memory

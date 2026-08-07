@@ -179,7 +179,7 @@ Requires: Python 3.11+, Apple Silicon recommended for MLX, `mlx-lm`, Textual (TU
 
 ## License
 
-MIT (see `LICENSE` if present; otherwise treat as MIT-style local project unless noted).
+MIT — see [`LICENSE`](LICENSE).
 
 ---
 

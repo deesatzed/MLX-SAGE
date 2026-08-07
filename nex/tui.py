@@ -1,13 +1,13 @@
 """
-Production-grade Textual TUI for Nex.
+Production-grade Textual TUI for Nex (local multi-model substrate under MLX-SAGE).
 
-Features implemented in this version:
+Features:
 - Real multi-turn using ChatSession + persistence
 - Markdown rendering + basic thinking awareness
 - Live model switching from registry (with MTP variants)
 - MTP toggle that reloads engine
 - Live stats
-- Keyboard navigation
+- Real SentinelPolicy gating of tool calls (approve / block / override)
 
 Run with:
     nex tui
@@ -15,6 +15,9 @@ Run with:
 """
 
 from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -42,23 +45,29 @@ from .persistence import (
     save_session,
 )
 from .session import ChatSession as CoreChatSession
-from .theme import get_color
 from .tools import parse_tool_call, execute_tool
-from .sentinel.policy import PolicyDecision, PolicyAction, FileEffect
-from .sentinel.enforcer import ContinuousEnforcer
-from dataclasses import dataclass
+from .sentinel.policy import PolicyDecision, PolicyAction, FileEffect, SentinelPolicy
+from .tui_policy import (
+    ToolGateResult,
+    apply_override_and_reevaluate,
+    decide_tool_gate,
+)
 
 
 @dataclass
 class PendingApproval:
+    """Human-in-the-loop item: real policy decision + gated tool call."""
+
     prompt_line: str
     file_effects: list[FileEffect]
     policy_decision: PolicyDecision
+    tool_call: Dict[str, Any]
     grok_verdict: str | None = None
+    command_effects: list = field(default_factory=list)
 
 
 class NexTUI(App):
-    """SOTA Textual experience for the OptiQ multi-model runner."""
+    """Local multi-model TUI with real Sentinel tool gating."""
 
     CSS = """
     Screen { background: $surface; }
@@ -76,12 +85,15 @@ class NexTUI(App):
         Binding("ctrl+t", "toggle_mtp", "Toggle MTP"),
         Binding("ctrl+l", "clear", "Clear"),
         Binding("ctrl+n", "new_session", "New Session"),
+        Binding("a", "approve_pending", "Approve"),
+        Binding("b", "block_pending", "Block"),
+        Binding("o", "override_pending", "Override"),
     ]
 
     current_model: reactive[str] = reactive(get_default_model())
     mtp_enabled: reactive[bool] = reactive(False)
     stats_text: reactive[str] = reactive("Ready")
-    approvals: reactive[list] = reactive([])  # live PendingApprovals for richer queue (needs-based human-in-loop)
+    approvals: reactive[list] = reactive([])
 
     def __init__(self):
         super().__init__()
@@ -89,6 +101,11 @@ class NexTUI(App):
         self.chat_session: CoreChatSession | None = None
         self.record: SessionRecord | None = None
         self.sid = new_session_id("tui")
+        self.policy = SentinelPolicy()
+        self._policy_decisions = 0
+        self._policy_blocks = 0
+        self._policy_reviews = 0
+        self._tools_executed = 0
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -102,18 +119,24 @@ class NexTUI(App):
 
             with Vertical():
                 yield Markdown(id="chat_log")
-                yield Static("Tool Output (when agent uses tools)", classes="title")
+                yield Static("Tool Output (policy-gated)", classes="title")
                 yield Log(id="tool_log", highlight=True, wrap=True, max_lines=8)
-                yield Static("Approvals / Sentinel Queue (richer TUI support for policy + Grok reviews)", classes="title")
+                yield Static(
+                    "Sentinel queue — real policy only (a=approve, b=block, o=override)",
+                    classes="title",
+                )
                 yield Log(id="approvals_log", highlight=True, wrap=True, max_lines=6)
-                yield Input(placeholder="Type your message and press Enter...  |  a=approve pending, b=block, o=override", id="input")
+                yield Input(
+                    placeholder="Message… | tools need a/b/o when policy says review",
+                    id="input",
+                )
                 yield Static(self.stats_text, id="stats")
 
         yield Footer()
 
     def on_mount(self) -> None:
-        self.title = "Nex • Multi-Model OptiQ + MTP"
-        self.sub_title = "Beautiful local AI on Apple Silicon"
+        self.title = "MLX-SAGE • Nex local runner"
+        self.sub_title = "Sage-first stack · local MLX + Sentinel tool gates"
         self._load_models()
         self._init_session()
         self._load_engine()
@@ -147,10 +170,9 @@ class NexTUI(App):
 
         prof = get_profile(self.current_model)
         mtp = " + MTP" if self.mtp_enabled else ""
-        self.stats_text = f"{prof.name}{mtp}"
+        self.stats_text = f"{prof.name}{mtp} | policy decisions={self._policy_decisions}"
         self.query_one("#stats", Static).update(self.stats_text)
 
-        # Re-attach engine to chat session
         if self.chat_session:
             self.chat_session.engine = self.engine
 
@@ -169,8 +191,8 @@ class NexTUI(App):
                 self._load_models()
                 self._load_engine()
                 self.query_one("#chat_log", Markdown).update(
-                    (self.query_one("#chat_log", Markdown).renderable or "") + 
-                    f"\n\n[dim]→ Switched to {get_profile(new_model).name}[/dim]"
+                    (self.query_one("#chat_log", Markdown).renderable or "")
+                    + f"\n\n[dim]→ Switched to {get_profile(new_model).name}[/dim]"
                 )
 
     # --- Session Management ---
@@ -189,7 +211,6 @@ class NexTUI(App):
         for msg in (self.chat_session.messages if self.chat_session else []):
             role = "**You:**" if msg["role"] == "user" else "**Nex:**"
             text = msg["content"].strip()
-            # Simple think tag handling for nicer display in Markdown
             if "<think>" in text and "</think>" in text:
                 before, rest = text.split("<think>", 1)
                 think_content, after = rest.split("</think>", 1)
@@ -201,6 +222,18 @@ class NexTUI(App):
         if self.record and self.chat_session:
             self.record.messages = self.chat_session.messages
             save_session(self.record)
+
+    def _update_policy_stats(self, extra: str = "") -> None:
+        base = self.stats_text.split(" | policy")[0]
+        self.stats_text = (
+            f"{base} | policy decisions={self._policy_decisions} "
+            f"blocks={self._policy_blocks} reviews={self._policy_reviews} "
+            f"tools_ok={self._tools_executed}{extra}"
+        )
+        try:
+            self.query_one("#stats", Static).update(self.stats_text)
+        except Exception:
+            pass
 
     # --- Chat ---
 
@@ -239,39 +272,75 @@ class NexTUI(App):
                     )
                     if self.mtp_enabled:
                         self.stats_text += " [MTP]"
-                    self.stats_text += " | oversight: Sentinel+policy active (see end report)"
-                    self.query_one("#stats", Static).update(self.stats_text)
+                    self._update_policy_stats()
 
             assistant_text = "".join(full_response).strip()
             self.chat_session.add_assistant(assistant_text)
             self._refresh_view()
             self._persist()
 
-            # Polish: show tool calls in dedicated log if detected
             tool_call = parse_tool_call(assistant_text)
             if tool_call:
-                tool_log = self.query_one("#tool_log", Log)
-                tool_log.write_line(f"[yellow]Tool call:[/yellow] {tool_call['name']} {tool_call.get('arguments')}")
-                # For demo, auto-execute safe tools in TUI too (optional)
-                try:
-                    obs = execute_tool(tool_call)
-                    tool_log.write_line(f"[green]Observation:[/green] {obs[:200]}...")
-                except Exception as e:
-                    tool_log.write_line(f"[red]Tool error:[/red] {e}")
-
-                # Live PendingApproval example for richer queue (real construction path; policy would provide real decision)
-                from .sentinel.policy import PolicyDecision, PolicyAction
-                from .sentinel.enforcer import FileEffect  # type
-                try:
-                    fake_fx = [FileEffect("tool", tool_call["name"])]
-                    fake_dec = PolicyDecision(PolicyAction.REVIEW, f"Tool {tool_call['name']} under Sentinel review", risk="yellow")
-                    pa = PendingApproval(prompt_line=f"tool:{tool_call['name']}", file_effects=fake_fx, policy_decision=fake_dec, grok_verdict=None)
-                    self.queue_approval(pa)
-                except Exception:
-                    pass  # non-fatal for demo
+                self._handle_tool_call(tool_call)
 
         except Exception as e:
             log.update(f"**Error during generation:** {e}")
+
+    def _handle_tool_call(self, tool_call: Dict[str, Any]) -> None:
+        """Real policy gate: auto-execute ALLOW, queue REVIEW/CONFIRM, refuse BLOCK."""
+        tool_log = self.query_one("#tool_log", Log)
+        tool_log.write_line(
+            f"[yellow]Tool call:[/yellow] {tool_call.get('name')} {tool_call.get('arguments')}"
+        )
+
+        gate = decide_tool_gate(self.policy, tool_call)
+        self._policy_decisions += 1
+        if gate.policy_decision.action == PolicyAction.BLOCK:
+            self._policy_blocks += 1
+        elif gate.policy_decision.action in (PolicyAction.REVIEW, PolicyAction.CONFIRM):
+            self._policy_reviews += 1
+        self._update_policy_stats()
+
+        action = gate.policy_decision.action.value
+        reason = gate.policy_decision.reason
+        tool_log.write_line(f"[cyan]Policy {action}:[/cyan] {reason}")
+
+        if gate.disposition == "auto_execute":
+            self._execute_gated_tool(tool_call, via="policy ALLOW")
+            return
+
+        if gate.disposition == "hard_block":
+            try:
+                alog = self.query_one("#approvals_log", Log)
+                alog.write_line(f"[red]BLOCKED[/red] {gate.prompt_line[:60]} — {reason[:80]}")
+            except Exception:
+                pass
+            tool_log.write_line("[red]Tool not executed (policy BLOCK).[/red]")
+            return
+
+        # queue — do not execute until a / o
+        pa = PendingApproval(
+            prompt_line=gate.prompt_line,
+            file_effects=list(gate.file_effects),
+            policy_decision=gate.policy_decision,
+            tool_call=tool_call,
+            grok_verdict=None,
+            command_effects=list(gate.command_effects),
+        )
+        self.queue_approval(pa)
+        tool_log.write_line(
+            "[yellow]Queued — press a=approve, b=block, o=override (not executed yet).[/yellow]"
+        )
+
+    def _execute_gated_tool(self, tool_call: Dict[str, Any], *, via: str) -> None:
+        tool_log = self.query_one("#tool_log", Log)
+        try:
+            obs = execute_tool(tool_call)
+            self._tools_executed += 1
+            self._update_policy_stats()
+            tool_log.write_line(f"[green]Observation ({via}):[/green] {obs[:200]}...")
+        except Exception as e:
+            tool_log.write_line(f"[red]Tool error:[/red] {e}")
 
     # --- Actions ---
 
@@ -296,29 +365,81 @@ class NexTUI(App):
         self.query_one("#chat_log", Markdown).update("*New session started*")
         self._persist()
 
-    # --- Richer live approval queue (PendingApproval made live for TUI human-in-loop) ---
-    def queue_approval(self, pa: "PendingApproval") -> None:
-        self.approvals.append(pa)
+    def queue_approval(self, pa: PendingApproval) -> None:
+        self.approvals = list(self.approvals) + [pa]
         try:
             alog = self.query_one("#approvals_log", Log)
-            grok = f" grok={pa.grok_verdict}" if pa.grok_verdict else ""
-            alog.write_line(f"[yellow]PENDING {pa.policy_decision.action.value}[/yellow] {pa.prompt_line[:50]}{grok}")
+            act = pa.policy_decision.action.value
+            alog.write_line(
+                f"[yellow]PENDING {act}[/yellow] {pa.prompt_line[:50]} — {pa.policy_decision.reason[:40]}"
+            )
         except Exception:
             pass
 
     def _handle_pending(self, approve: bool, override: bool = False) -> None:
         if not self.approvals:
             return
-        pa = self.approvals.pop(0)
-        action = "APPROVED" if approve else ("BLOCKED" if not override else "OVERRIDE")
+        remaining = list(self.approvals)
+        pa: PendingApproval = remaining.pop(0)
+        self.approvals = remaining
+
+        tool_log = self.query_one("#tool_log", Log)
+        alog = self.query_one("#approvals_log", Log)
+
+        if override:
+            # Re-evaluate after recording session overrides. Hard blocks (e.g. .env) still win.
+            new_dec = apply_override_and_reevaluate(
+                self.policy, pa.tool_call, pa.file_effects
+            )
+            self._policy_decisions += 1
+            alog.write_line(
+                f"[magenta]OVERRIDE re-eval → {new_dec.action.value}[/magenta] {new_dec.reason[:60]}"
+            )
+            if new_dec.action == PolicyAction.BLOCK:
+                self._policy_blocks += 1
+                tool_log.write_line(
+                    "[red]Override refused: hard policy BLOCK still applies (e.g. protected path).[/red]"
+                )
+                self._update_policy_stats()
+                return
+            if new_dec.action == PolicyAction.ALLOW:
+                self._execute_gated_tool(pa.tool_call, via="user OVERRIDE→ALLOW")
+                self._update_policy_stats()
+                return
+            # Still review after override attempt — do not execute
+            tool_log.write_line(
+                f"[yellow]Override did not yield ALLOW ({new_dec.action.value}); tool not run.[/yellow]"
+            )
+            self._update_policy_stats()
+            return
+
+        if approve:
+            # User accepts the queued action despite REVIEW/CONFIRM
+            alog.write_line(f"[green]APPROVED[/green] {pa.prompt_line[:40]}")
+            self._execute_gated_tool(pa.tool_call, via="user APPROVE")
+            try:
+                clog = self.query_one("#chat_log", Markdown)
+                clog.update(
+                    (clog.renderable or "")
+                    + f"\n\n[dim]→ Sentinel APPROVED: {pa.policy_decision.reason[:60]}[/dim]"
+                )
+            except Exception:
+                pass
+            return
+
+        # block
+        self._policy_blocks += 1
+        alog.write_line(f"[red]BLOCKED by user[/red] {pa.prompt_line[:40]}")
+        tool_log.write_line("[red]Tool not executed (user block).[/red]")
         try:
-            alog = self.query_one("#approvals_log", Log)
-            alog.write_line(f"[green]{action}[/green] {pa.prompt_line[:40]}")
             clog = self.query_one("#chat_log", Markdown)
-            clog.update( (clog.renderable or "") + f"\n\n[dim]→ Sentinel {action}: {pa.policy_decision.reason[:60]}[/dim]" )
+            clog.update(
+                (clog.renderable or "")
+                + f"\n\n[dim]→ Sentinel BLOCKED: {pa.policy_decision.reason[:60]}[/dim]"
+            )
         except Exception:
             pass
-        # In full: would record to trace, possibly inject back to agent, update policy override store
+        self._update_policy_stats()
 
     def action_approve_pending(self) -> None:
         self._handle_pending(approve=True)
@@ -328,17 +449,6 @@ class NexTUI(App):
 
     def action_override_pending(self) -> None:
         self._handle_pending(approve=True, override=True)
-
-    # Bindings extended for queue (a/b/o like gemOptq SentinelTUI concepts)
-    # (added at runtime via the BINDINGS list below for demo; real would merge)
-
-
-# Extend bindings for richer queue controls (small additive for needs)
-NexTUI.BINDINGS = NexTUI.BINDINGS + [
-    Binding("a", "approve_pending", "Approve"),
-    Binding("b", "block_pending", "Block"),
-    Binding("o", "override_pending", "Override"),
-]
 
 
 def run_tui() -> None:

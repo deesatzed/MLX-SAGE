@@ -1,7 +1,7 @@
 [project]
 name = "nex-cli"
 version = "0.3.0"
-description = "Nex — Multi-model CLI + MCP server for MLX OptiQ models (Qwen3/3.5/3.6, Gemma-4, Nemotron, Nex, MiniCPM, etc.) on Apple Silicon"
+description = "MLX-SAGE — personal sage partner on Apple Silicon (local MLX dialogue, living direction, hive joint beneficence). Package nex also provides multi-model Nex CLI, Superintendant rails, MCP, and OpenAI-compatible serve."
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}

@@ -60,7 +60,11 @@ from .session import ChatSession
 
 app = typer.Typer(
     name="nex",
-    help="Standalone CLI for jedisct1/Nex-N2-mini-mlx-OptiQ-4bit (mlx-lm on Apple Silicon) — with agent tools and MCP server",
+    help=(
+        "MLX-SAGE (Sage-first): personal sage partner on Apple Silicon — "
+        "`nex sage tui`, hive (`nex we`), Superintendant (`nex supervise`). "
+        "Also local multi-model Nex: chat, agent, models, serve, MCP (mlx-lm / OptiQ)."
+    ),
     add_completion=False,
     rich_markup_mode="rich",
 )

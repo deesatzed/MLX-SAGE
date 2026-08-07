@@ -244,8 +244,23 @@ class SentinelPolicy:
     # In real port, copy the _override_decision, _threshold_decision, _match_any, _file_effect_id, etc.
 
     def _override_decision(self, effects, file_ids, command_effects, now_seconds):
-        # Adapted logic
-        return None  # Simplified for this step; full logic from gemOptq can be copied
+        """Honor active session path overrides (after hard blocks, before soft REVIEW)."""
+        now = time.time() if now_seconds is None else now_seconds
+        for effect in effects:
+            ov = self.override_store.active_for_effect(effect, now_seconds=now)
+            if ov is None:
+                continue
+            return PolicyDecision(
+                ov.action,
+                f"Session override ({ov.override_id}): {ov.reason}",
+                matched_pattern=ov.path_pattern,
+                effect=effect,
+                risk="yellow" if ov.action != PolicyAction.ALLOW else "green",
+                effect_ids=[self._file_effect_id(effect)],
+                override_id=ov.override_id,
+                source="override",
+            )
+        return None
 
     def _threshold_decision(self, *, effect_ids, default_action):
         return None

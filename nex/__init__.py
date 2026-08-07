@@ -1,16 +1,16 @@
 """
-Nex — Multi-Model OptiQ Runner for Apple Silicon
+MLX-SAGE — personal sage partner on Apple Silicon (package import name: ``nex``).
 
-A powerful local CLI + MCP server for the family of high-quality
-MLX + OptiQ-4bit models (Qwen3/3.5/3.6, Gemma-4, Nemotron, MiniCPM, Nex, etc.).
+Primary surface:
+- ``nex sage tui`` — local MLX dialogue + living direction
+- ``nex we`` — hive cells + joint beneficence
+- ``nex supervise`` — Superintendant rails (policy + propellant Grok + WattOS)
 
-All models load via the same `mlx_lm` interface. The app provides:
-- Excellent chat with persistence and reasoning display
-- Autonomous agent with safe sandboxed tools
-- MCP server so other AIs can call these models
+Also includes the local multi-model Nex runner (chat, agent, models, serve, MCP)
+for mlx-lm / OptiQ-class weights on Apple Silicon.
 """
 
-__version__ = "0.2.0"   # Bumped for multi-model expansion
+__version__ = "0.3.0"
 
 # Legacy constant kept for backward compatibility.
 # New code should prefer `from nex.models import get_default_model`
