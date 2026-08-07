@@ -16,6 +16,11 @@ Destination: purpose via partnership + hives + joint beneficence + selfless.
 - Tests: `pytest tests/` **28/28** (includes `tests/test_tui_tool_policy.py`).
 - CI after P0: `.github/workflows/ci.yml` runs unit suite on push/PR (Python 3.11/3.12; no MLX weights).
 
+### Env / Grok keys (2026-08-07)
+- **Decision:** Use project `.env` + **XAI_API_KEY** only for now. OpenRouter multi-provider tabled.
+- `.env` gitignored; `.env.example` committed; `nex.envload` loads `.env` at CLI / escalator (no override of existing env).
+- Never commit real `.env`. Rotate keys if they were ever exposed in logs/chat.
+
 ### Stage 3 polish (2026-08-07)
 - Lazy plugins (no import-time load; quiet `--help`) + tests
 - Native `nex agent` emits **WattOS** end report with real local tokens/tps (unify D-014)

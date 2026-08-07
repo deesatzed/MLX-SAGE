@@ -47,6 +47,11 @@ sandbox/*
 # uv / pip
 uv.lock
 
+# Secrets — never commit API keys
+.env
+.env.*
+!.env.example
+
 # Misc
 *.log
 *.tmp

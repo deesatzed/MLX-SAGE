@@ -30,15 +30,24 @@ except ImportError:
 
 class GrokEscalator:
     def __init__(self, api_key: Optional[str] = None, model: str = "grok-3"):
+        # Prefer process env / .env via envload (cli loads early). XAI only for now;
+        # OPENROUTER_API_KEY is intentionally ignored until multi-provider work.
+        try:
+            from .envload import ensure_env_loaded
+
+            ensure_env_loaded()
+        except Exception:
+            pass
+
         self.api_key = api_key or os.environ.get("XAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
-        self.model = model
+        self.model = os.environ.get("NEX_GROK_MODEL") or model
         self.client = None
 
         if self.api_key and OpenAI:
-            # xAI uses OpenAI client with base_url
+            # Direct xAI (OpenAI-compatible). OpenRouter tabled for later.
             self.client = OpenAI(
                 api_key=self.api_key,
-                base_url="https://api.x.ai/v1"
+                base_url="https://api.x.ai/v1",
             )
 
     def is_available(self) -> bool:
@@ -137,5 +146,5 @@ Analyze whether this action should proceed. Be conservative on secrets, producti
 
 
 def get_grok_escalator() -> GrokEscalator:
-    """Convenience factory. Respects XAI_API_KEY."""
+    """Convenience factory. Respects XAI_API_KEY from env or project .env."""
     return GrokEscalator()

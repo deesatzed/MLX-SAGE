@@ -15,6 +15,10 @@ from typing import Optional
 import typer
 from rich.prompt import Prompt
 
+from .envload import ensure_env_loaded
+
+ensure_env_loaded()  # XAI_API_KEY etc. from project .env (never committed)
+
 from . import DEFAULT_MODEL
 from .agent import run_agent
 from .engine import Engine
