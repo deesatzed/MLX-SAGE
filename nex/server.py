@@ -15,22 +15,26 @@ Fully reuses the existing Engine, registry, MTP support, and chat templating.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import time
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from .engine import Engine
 from .models import get_default_model, get_profile, list_profiles
-from .tools import parse_tool_call, TOOLS  # for potential execution or validation
+
+if TYPE_CHECKING:
+    from .engine import Engine
 
 app = FastAPI(
-    title="Nex Local Server",
-    description="OpenAI-compatible API for high-quality local OptiQ MLX models with MTP support",
+    title="MLX-SAGE · Nex Local Server",
+    description=(
+        "OpenAI-compatible local API for Apple Silicon MLX / OptiQ models (MTP optional). "
+        "Part of MLX-SAGE (Sage-first product; Nex multi-model substrate). "
+        "Local trust only — no auth; do not expose to untrusted networks."
+    ),
     version="0.3.0",
 )
 
@@ -80,11 +84,14 @@ class ChatCompletionResponse(BaseModel):
 
 
 # ---------------- Engine Cache (simple, model + mtp aware) ----------------
+# Engine / mlx-lm loaded lazily so /health and /v1/models work without MLX installed.
 
-_engines: Dict[str, Engine] = {}
+_engines: Dict[str, Any] = {}
 
 
-def _get_engine(req: ChatCompletionRequest) -> Engine:
+def _get_engine(req: ChatCompletionRequest) -> Any:
+    from .engine import Engine
+
     model = req.model or get_default_model()
     profile = get_profile(model)
     model_id = profile.repo_id
@@ -117,14 +124,14 @@ def _get_engine(req: ChatCompletionRequest) -> Engine:
 
 # ---------------- Helpers ----------------
 
-def _build_prompt(engine: Engine, messages: List[ChatMessage]) -> str:
+def _build_prompt(engine: Any, messages: List[ChatMessage]) -> str:
     """Convert OpenAI messages to the model's chat template."""
     msgs = [{"role": m.role, "content": m.content} for m in messages]
     return engine.apply_chat_template(msgs, add_generation_prompt=True)
 
 
 async def _stream_completion(
-    engine: Engine,
+    engine: Any,
     prompt: str,
     req: ChatCompletionRequest,
 ) -> AsyncGenerator[str, None]:

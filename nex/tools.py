@@ -314,6 +314,7 @@ def parse_tool_call(text: str) -> Optional[Dict[str, Any]]:
 
 def execute_tool(call: Dict[str, Any]) -> str:
     """Execute a parsed tool call safely and return observation string."""
+    load_plugins()
     name = call.get("name")
     args = call.get("arguments", {}) or {}
     if name not in TOOLS:
@@ -377,8 +378,5 @@ def load_plugins() -> None:
     PLUGINS_LOADED = True
 
 
-# Auto-attempt to load plugins on import
-try:
-    load_plugins()
-except Exception:
-    pass
+# Plugins load on demand via execute_tool / agent run_agent — not at import
+# (keeps `nex --help` and unit imports quiet; D-012 Stage 3 polish).

@@ -217,7 +217,8 @@ def run_agent(
         oversight.wall_time_s = wall
         oversight.policy_decisions = steps  # proxy: every step had policy/grok opportunity
 
-        _print_oversight_report(oversight, sid, steps, "agent (GROK_IN_LOOP)" if use_grok_loop else "agent")
+        mode = "agent (GROK_IN_LOOP)" if use_grok_loop else "agent"
+        _print_end_reports(oversight, sid, steps, mode, use_grok_loop=use_grok_loop)
         return AgentResult(
             session_id=sid,
             final_answer=final.strip(),
@@ -234,13 +235,71 @@ def run_agent(
         oversight.avg_generation_tps = sum(ts) / len(ts) if ts else 0.0
     oversight.wall_time_s = wall
     oversight.policy_decisions = steps
-    _print_oversight_report(oversight, sid, steps, "agent (max steps)")
+    _print_end_reports(oversight, sid, steps, "agent (max steps)", use_grok_loop=use_grok_loop)
     return AgentResult(
         session_id=sid,
         final_answer=last,
         steps=steps,
         stats=all_stats,
     )
+
+
+def _print_end_reports(
+    oversight: SessionOversight,
+    sid: str,
+    steps: int,
+    mode: str,
+    *,
+    use_grok_loop: bool,
+) -> None:
+    """Print Session Oversight + unified WattOS end report (real counters only)."""
+    _print_oversight_report(oversight, sid, steps, mode)
+    _print_agent_wattos(oversight, sid, mode, use_grok_loop=use_grok_loop)
+
+
+def _print_agent_wattos(
+    oversight: SessionOversight,
+    sid: str,
+    mode: str,
+    *,
+    use_grok_loop: bool,
+) -> None:
+    """WattOS for native nex agent — local tokens filled from real GenerationStats."""
+    from .propellant import PropellantLedger
+    from .wattos import WattOSReport, print_wattos_report
+
+    if use_grok_loop:
+        try:
+            max_burns = int(os.environ.get("NEX_MAX_GROK", "3"))
+        except ValueError:
+            max_burns = 3
+        max_burns = max(0, max_burns)
+        used = min(oversight.grok_escalations, max_burns) if max_burns else 0
+        denied = max(0, oversight.grok_escalations - used) if max_burns == 0 else 0
+        ledger = PropellantLedger(max_burns=max_burns, used=used, denied=denied)
+        grok_status = "on (GROK_IN_LOOP)"
+    else:
+        ledger = PropellantLedger(max_burns=0, used=0, denied=0)
+        grok_status = "disabled (local agent)"
+
+    tps = oversight.avg_generation_tps if oversight.avg_generation_tps > 0 else None
+    toks = oversight.local_generation_tokens if oversight.local_generation_tokens else None
+    report = WattOSReport(
+        mode=mode,
+        agent=f"nex-agent:{sid}",
+        wall_time_s=oversight.wall_time_s,
+        policy_decisions=oversight.policy_decisions,
+        blocks=oversight.blocks,
+        reviews=oversight.reviews,
+        grok_escalations=oversight.grok_escalations,
+        propellant=ledger,
+        local_generation_tokens=toks,
+        avg_generation_tps=tps,
+        note=oversight.note or "native nex agent (sandbox tools)",
+        grok_status=grok_status,
+        local_stats_reason=None if toks is not None else "no local generation stats recorded",
+    )
+    print_wattos_report(report, console=console)
 
 
 def _print_oversight_report(oversight: SessionOversight, sid: str, steps: int, mode: str) -> None:

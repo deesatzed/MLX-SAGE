@@ -160,11 +160,22 @@ Package name in Python: **`nex-cli`** (`pip install -e .`). Console entry: `nex`
 
 ```bash
 pip install -e ".[tui,dev]"
+# optional: OpenAI server smoke tests need the server extra
+pip install -e ".[tui,dev,server]"
 export PYTHONPATH=.
 python -m pytest tests/ -q
 ```
 
 Requires: Python 3.11+, Apple Silicon recommended for MLX, `mlx-lm`, Textual (TUI extra).
+
+CI runs unit tests on push/PR (see `.github/workflows/ci.yml`).
+
+---
+
+## Screenshots & recordings
+
+**None published yet.** Do not treat landing-page “suggested shots” as existing media.
+When you capture real asciinema/screenshots, link them here and in `docs/index.html`.
 
 ---
 

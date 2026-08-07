@@ -16,6 +16,14 @@ Destination: purpose via partnership + hives + joint beneficence + selfless.
 - Tests: `pytest tests/` **28/28** (includes `tests/test_tui_tool_policy.py`).
 - CI after P0: `.github/workflows/ci.yml` runs unit suite on push/PR (Python 3.11/3.12; no MLX weights).
 
+### Stage 3 polish (2026-08-07)
+- Lazy plugins (no import-time load; quiet `--help`) + tests
+- Native `nex agent` emits **WattOS** end report with real local tokens/tps (unify D-014)
+- Server smoke: `/health`, `/v1/models`, empty messages 400 (`tests/test_server_smoke.py`)
+- Sage TUI polish: Markdown transcript, status/busy, Ctrl+R, honest empty-model docs
+- ARCHITECTURE_MERGE post-merge remaining table; screenshot sections honesty (README + index)
+- CI installs fastapi for server smokes
+
 ## Protocol Sage Partner (2026-08-05)
 
 - **TUI conversation:** `nex sage tui` — Textual chat + local MLX + profile memory

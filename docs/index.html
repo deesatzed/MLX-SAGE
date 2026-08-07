@@ -375,16 +375,19 @@ nex trace-gallery --redact --out /tmp/audit-gallery.md
     </div>
 
     <div class="section">
-        <h2>Screenshots & Visuals (Placeholders)</h2>
-        <p><!-- TODO: Replace with real screenshots or asciinema embeds. Suggested shots: --></p>
+        <h2>Screenshots &amp; Visuals</h2>
+        <p><strong>Status:</strong> No recorded screenshots or asciinema casts are published yet.
+        The list below is a <em>suggested capture plan</em> only — not proof that media exists.</p>
         <ul>
-            <li><strong>Live PTY + Enforcer Interception</strong>: Agent writes .env → real block (run showpiece or <code>nex supervise</code>).</li>
-            <li><strong>TUI Approvals Queue</strong>: Pending approvals pane with a/b/o keys and Grok verdict.</li>
-            <li><strong>Oversight & Efficiency Report</strong>: Panel with local tokens, t/s, policy decisions, escalations.</li>
-            <li><strong>Redacted Gallery</strong>: Output of <code>nex trace-gallery --redact</code>.</li>
-            <li><strong>One-Command Install</strong>: <code>nex supervise --install</code> making daily drivers protected.</li>
+            <li><strong>Sage Partner TUI</strong>: <code>nex sage tui</code> dialogue + direction (Ctrl+D).</li>
+            <li><strong>Live PTY + Enforcer</strong>: Agent writes .env → real block (showpiece or <code>nex supervise</code>).</li>
+            <li><strong>Nex TUI policy queue</strong>: Real Sentinel REVIEW/BLOCK + a/b/o gates tools.</li>
+            <li><strong>WattOS / Oversight report</strong>: End-of-run counters (not hardware watts).</li>
+            <li><strong>Redacted gallery</strong>: <code>nex trace-gallery --redact</code>.</li>
         </ul>
-        <p><strong>Asciinema support</strong>: Record with <code>asciinema rec --command 'python scripts/grokkasclate_showpiece.py' demo.cast</code>. Embed via asciinema.org for playable terminal "screenshots" directly here and in README (lightweight, no video files needed).</p>
+        <p><strong>How to record later:</strong>
+        <code>asciinema rec --command 'python scripts/wattos_superintendant_demo.py --max-grok 0 --no-grok' demo.cast</code>
+        then embed from asciinema.org if desired.</p>
     </div>
 
     <footer class="footer">

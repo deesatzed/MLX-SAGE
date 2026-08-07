@@ -29,6 +29,9 @@
     {"id": "D-018", "severity": "low", "category": "security", "location": "local serve no auth"}
   ],
   "p0": ["D-001", "D-002", "D-007", "D-003"],
+  "resolved_2026_08_07": ["D-001", "D-002", "D-003", "D-006", "D-007", "D-012", "D-014"],
+  "partial_2026_08_07": ["D-004", "D-005", "D-008"],
   "baseline": true,
-  "artifact": "Debt_2026-08-07.md"
+  "artifact": "Debt_2026-08-07.md",
+  "stage3_polish": true
 }

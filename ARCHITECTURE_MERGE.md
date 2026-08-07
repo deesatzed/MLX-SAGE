@@ -1,5 +1,7 @@
 # Architecture Merge: Nex (OptiqMTPMLX) + gemOptq (Cortex Sentinel + MCP-Cortex)
 
+> **Status (2026-08-07):** Merge executed. Product front door is **MLX-SAGE** (Sage partner + hive + Superintendant). Package import remains `nex` / `nex-cli`. Gaps below under “historical pre-merge” are **closed or largely closed** — see **Post-merge remaining**.
+
 ## Goal
 Create "Grok in the Loop" — a local-first, auditable, hybrid-reasoning agent supervisor where:
 - Fast local OptiQ/MLX models (Nex, Qwen, Gemma variants with MTP) handle the bulk of work.
@@ -9,6 +11,21 @@ Create "Grok in the Loop" — a local-first, auditable, hybrid-reasoning agent s
 
 This combines the strengths of both repos into one compelling product.
 
+## Post-merge remaining (honest, current)
+
+| Area | State |
+|------|--------|
+| Sentinel policy + PTY Superintendant | **Live** (`nex/sentinel/*`, `superintend`, propellant, WattOS) |
+| Grok escalation | **Live** when `XAI_API_KEY` set; graceful skip without |
+| Nex TUI tool gates | **Live** via `tui_policy` + real `SentinelPolicy` (not synthetic) |
+| Sage partner TUI | **Live** (`nex sage tui`) |
+| Hive + joint beneficence | **Live** (`nex we`, tests) |
+| OpenAI server / MCP | **Live**; unit smokes for `/health` + `/v1/models` |
+| Full multi-agent hive runtime | **Not claimed** |
+| Hardware watt meters | **Not claimed** (WattOS = efficiency report brand) |
+| Screenshot / asciinema media | **Not recorded yet** (docs must not imply otherwise) |
+| Live Grok V8 proof | Optional; needs key |
+
 ## Current State Mapping
 
 ### From Nex (current main project)
@@ -16,22 +33,21 @@ This combines the strengths of both repos into one compelling product.
   - Multi-model OptiQ registry (`nex/models.py`) — supports Nex-N2, Qwen3.5/3.6 OptiQ, Gemma-4 OptiQ, Nemotron, etc.
   - MTP / speculative decoding for ~1.3-1.5x speedup.
   - Agent with safe sandbox tools (`list_dir`, `read_file`, `write_file`, `run_python`, `shell`) + robust parser (XML, JSON, ReAct tolerant).
-  - Production Textual TUI (`nex/tui.py`) with real `ChatSession` + persistence, model switching, MTP toggle, stats.
+  - Textual TUI (`nex/tui.py`) with real `ChatSession` + persistence, model switching, MTP toggle, stats + **policy-gated tools**.
   - OpenAI-compatible server (`nex/server.py`) — streaming, model selection, basic tool_calls passthrough.
   - MCP server with tools for ask/chat/agent/search.
   - History RAG (optional `[rag]` extra).
-  - Plugin system (auto-load from `~/.nex/plugins/`).
+  - Plugin system (lazy-load from `~/.nex/plugins/` / `./plugins` on tool use).
   - Config system with per-model overrides.
   - uv-first setup, self-update/doctor.
-  - `EXPANSION_PLAN.md` and clear multi-model focus.
+  - `EXPANSION_PLAN.md` and multi-model substrate under Sage-first product.
 
-- **Current Gaps for Grok-in-the-Loop**:
-  - No strong deterministic policy / hard blocks for protected paths.
-  - No continuous enforcement + rollback.
-  - Auditor is simplistic (local only, no structured escalation).
-  - Traces exist but not as rich/auditable as Sentinel.
-  - No PTY runner for supervising external agents (Claude Code, etc.).
-  - MCP is server-focused, not a policy overlay.
+- **Historical pre-merge gaps for Grok-in-the-Loop** (closed unless noted):
+  - ~~No strong deterministic policy / hard blocks for protected paths.~~ → `SentinelPolicy`
+  - ~~No continuous enforcement.~~ → `ContinuousEnforcer` + `FileEffectObserver` (rollback depth still evolving)
+  - ~~No structured Grok escalation.~~ → `grok_escalator` + auditor
+  - ~~No PTY runner.~~ → `pty_runner` + `supervise`
+  - MCP is still primarily server-focused, not a full policy proxy overlay.
 
 ### From gemOptq (Cortex Sentinel + MCP-Cortex)
 - **Strengths** (highly relevant):
