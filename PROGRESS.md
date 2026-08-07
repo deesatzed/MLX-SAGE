@@ -14,6 +14,7 @@ Destination: purpose via partnership + hives + joint beneficence + selfless.
 - `SentinelPolicy._override_decision` real session overrides.
 - `LICENSE` MIT present; `pyproject` + CLI help + `nex/__init__` Sage-first.
 - Tests: `pytest tests/` **28/28** (includes `tests/test_tui_tool_policy.py`).
+- CI after P0: `.github/workflows/ci.yml` runs unit suite on push/PR (Python 3.11/3.12; no MLX weights).
 
 ## Protocol Sage Partner (2026-08-05)
 
