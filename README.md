@@ -8,18 +8,15 @@ MLX-SAGE helps you find and live **purpose and meaning with AI**, not under it: 
 pip install -e ".[tui]"
 export PYTHONPATH=.
 
-# Home: short status, then type talk / setup / quit
-python -m nex.cli home
-# or: python -m nex.cli sage
-
-# Interactive setup (asks questions — does not dump CLI recipes)
-python -m nex.cli sage setup
-
-# Partner chat
-python -m nex.cli sage talk
+# That's it — one command opens the Partner app
+nex
+# same:  nex start   ·   nex main
 ```
 
-**Modes:** **Partner** = local sage chat. **Rails** = `supervise` / `agent` / optional XAI Grok — not sage voice.
+The app **guides you**: finds a local model, asks who matters, optional weekly commit, then talk.  
+Sidebar keeps your direction visible. No command menu to memorize.
+
+**Rails** (coding agents, optional): `nex supervise`, `nex agent` — advanced, not the main path.
 
 ---
 
@@ -27,13 +24,11 @@ python -m nex.cli sage talk
 
 | Surface | Purpose |
 |---------|---------|
-| **`nex home` / `nex sage`** | Partnership home — direction, people, commits, readiness |
-| **`nex sage coach`** | First-run: local model + thin profile (no Rails tour) |
-| **`nex sage tui`** | Partner dialogue + slash capture (`/commit`, `/person`, …) |
-| **Living direction** | `direction.md` from people, sits, commits, reflections |
-| **Hive cell (`nex we`)** | Co-goal + roles + joint beneficence + receipt |
-| **Superintendant** | **Rails:** supervise agents, propellant Grok, WattOS |
-| **Local multi-model Nex** | Chat, agent, serve, models (substrate under Sage) |
+| **`nex` / `nex start`** | **The app** — guided setup + partner talk + living direction |
+| **Living direction** | Auto-updated from people, commits, talk, reflections |
+| **Hive / CLI sage tools** | Advanced / optional |
+| **Superintendant** | Rails: supervise coding agents (optional) |
+| **models / serve / mcp** | Advanced local multi-model substrate |
 
 **Stance**
 
@@ -56,31 +51,19 @@ python -m nex.cli sage models
 python -m nex.cli sage tui
 ```
 
-**In the TUI (Partner)**
+**In the app**
 
-| Key / input | Action |
-|-------------|--------|
-| Type + Enter | Talk with local model |
-| `/commit text \| toward` | Save commitment to profile |
-| `/person Name \| relation` | Add person to mattering map |
-| `/reflect …` `/direction` `/receipt` `/help` | Capture & status |
-| Ctrl+D | Show / refresh direction |
-| Ctrl+H | Welcome-back / home summary |
-| Ctrl+E | Export shareable pack |
-| Ctrl+N | New chat thread (keeps profile) |
-| Ctrl+Q | Quit ritual (optional one-line reflection) |
+| You type | What happens |
+|----------|----------------|
+| A name on first run | Saved as someone who matters |
+| A weekly action | Saved as a commitment |
+| Normal sentences | Talk with local sage |
+| `person Jordan friend` | Add another person |
+| `commit Walk tomorrow` | Add a commitment |
+| Ctrl+Q | Leave (optional one-line reflection) |
+| F5 | Rescan for a local model |
 
-Optional structured helpers:
-
-```bash
-python -m nex.cli sage init
-python -m nex.cli sage people add --name Sam --relation sibling \
-  --they-need-me "monthly call" --i-need "family continuity"
-python -m nex.cli sage direction
-python -m nex.cli sage export
-```
-
-Profile & direction live under `sessions/sage/<profile>/` (gitignored runtime data).
+Profile data: `sessions/sage/<profile>/` (gitignored).
 
 ---
 

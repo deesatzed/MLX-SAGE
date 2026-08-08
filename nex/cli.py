@@ -65,10 +65,10 @@ from .session import ChatSession
 app = typer.Typer(
     name="nex",
     help=(
-        "MLX-SAGE — Sage-first on Apple Silicon.\n\n"
-        "[Partner] `nex home` / `nex sage` · `nex sage tui` · `nex sage coach`\n"
-        "[Rails]   `nex supervise` · `nex agent` · optional Grok (XAI) — not your sage voice.\n"
-        "Also: chat, models, serve, MCP (local multi-model substrate)."
+        "MLX-SAGE — run with no args to start.\n\n"
+        "  nex          → Partner app (setup + talk, guided)\n"
+        "  nex start    → same\n\n"
+        "Advanced: sage/*, supervise, agent, models, serve, mcp."
     ),
     add_completion=False,
     rich_markup_mode="rich",
@@ -115,40 +115,32 @@ def _get_engine(
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
-    model: str = typer.Option(
+    profile: str = typer.Option("default", "--profile", "-p", help="Sage profile id"),
+    model: Optional[str] = typer.Option(
         None,
         "--model",
         "-m",
-        help="HF repo, alias (qwen9b, gemma12b, nemotron, nex, ...), or local path. See `nex models list`.",
+        help="Optional local model path (otherwise auto-picked if READY)",
     ),
-    max_tokens: int = typer.Option(1024, "--max-tokens", "-n"),
-    temperature: float = typer.Option(0.7, "--temperature", "-t"),
-    top_p: float = typer.Option(0.95, "--top-p"),
-    system: Optional[str] = typer.Option(None, "--system", "-s"),
-    no_stream: bool = typer.Option(False, "--no-stream"),
-    session: Optional[str] = typer.Option(None, "--session", help="Named session to resume or create"),
-    resume: bool = typer.Option(False, "--resume", help="Resume the most recent session"),
-    no_persist: bool = typer.Option(False, "--no-persist", help="Do not save/load session history"),
-    enable_mtp: bool = typer.Option(False, "--enable-mtp", "--mtp", help="Enable MTP / speculative decoding (Multi-Token Prediction) for ~1.3-1.5x faster generation when supported."),
-    draft_model: Optional[str] = typer.Option(None, "--draft-model", help="Explicit MTP draft model repo id (e.g. the -MTP variant)."),
-    num_draft_tokens: int = typer.Option(3, "--num-draft-tokens", help="Number of draft tokens for MTP speculative decoding."),
 ):
-    """Default action is interactive chat (with smart session persistence)."""
-    if ctx.invoked_subcommand is None:
-        chat(
-            model=model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            top_p=top_p,
-            system=system,
-            no_stream=no_stream,
-            session=session,
-            resume=resume,
-            no_persist=no_persist,
-            enable_mtp=enable_mtp,
-            draft_model=draft_model,
-            num_draft_tokens=num_draft_tokens,
-        )
+    """Start the Partner app (one surface: guided setup + talk)."""
+    if ctx.invoked_subcommand is not None:
+        return
+    from .sage.app import run_partner_app
+
+    run_partner_app(profile_id=profile, model_path=model)
+
+
+@app.command("start")
+@app.command("main")
+def start_cmd(
+    profile: str = typer.Option("default", "--profile", "-p"),
+    model: Optional[str] = typer.Option(None, "--model", "-m"),
+):
+    """Start MLX-SAGE Partner (same as bare `nex`)."""
+    from .sage.app import run_partner_app
+
+    run_partner_app(profile_id=profile, model_path=model)
 
 
 # ------------------------------------------------------------------
@@ -863,30 +855,13 @@ alias codex='grok-codex'
 # ------------------------------------------------------------------
 
 
-@app.command("home")
-def home_cmd(
-    profile: str = typer.Option("default", "--profile", "-p"),
-    plain: bool = typer.Option(False, "--plain", help="Status only, no menu"),
-):
-    """[Partner] Home — short status, then talk / setup / quit."""
-    from .sage.home import build_home_snapshot, render_home_text, run_home_menu
-
-    if plain:
-        console.print(render_home_text(build_home_snapshot(profile)))
-        return
-    run_home_menu(profile)
-
-
 # ------------------------------------------------------------------
-# sage — Protocol Sage Partner (personal partnership protocol)
+# sage — advanced / power-user Partner commands (happy path is bare `nex`)
 # ------------------------------------------------------------------
 
 sage_app = typer.Typer(
     name="sage",
-    help=(
-        "[Partner] Local sage for purpose & people. "
-        "Default opens home (talk / setup). Rails = supervise/agent."
-    ),
+    help="Advanced Partner tools. Prefer bare `nex` / `nex start` for the app.",
     add_completion=False,
     invoke_without_command=True,
 )
@@ -897,59 +872,27 @@ app.add_typer(sage_app, name="sage")
 def sage_root(
     ctx: typer.Context,
     profile: str = typer.Option("default", "--profile", "-p"),
-    plain: bool = typer.Option(False, "--plain", help="Status only, no menu"),
+    model: Optional[str] = typer.Option(None, "--model", "-m"),
 ):
-    """Home menu when no subcommand (talk / setup / quit)."""
+    """Same as `nex start` — opens the Partner app."""
     if ctx.invoked_subcommand is not None:
         return
-    from .sage.home import build_home_snapshot, render_home_text, run_home_menu
+    from .sage.app import run_partner_app
 
-    if plain:
-        console.print(render_home_text(build_home_snapshot(profile)))
-        return
-    run_home_menu(profile)
+    run_partner_app(profile_id=profile, model_path=model)
 
 
-@sage_app.command("setup")
-@sage_app.command("coach")  # alias — interactive, not a wall of CLI copy-paste
-def sage_setup(
-    profile: str = typer.Option("default", "--profile", "-p"),
-):
-    """[Partner] Interactive setup — asks questions, writes profile, can open chat."""
-    from .sage.home import run_interactive_setup
-
-    run_interactive_setup(profile)
-
-
+@sage_app.command("start")
 @sage_app.command("talk")
 @sage_app.command("tui")
-def sage_tui(
+def sage_start(
     profile: str = typer.Option("default", "--profile", "-p"),
-    model: str = typer.Option(
-        "",
-        "--model",
-        "-m",
-        help="Local model path (default: first complete MLX model found)",
-    ),
+    model: Optional[str] = typer.Option(None, "--model", "-m"),
 ):
-    """[Partner] Open sage chat (local MLX)."""
-    from .sage.tui import run_sage_tui
-    from .sage.local_models import pick_default_local
-    from .sage.home import run_interactive_setup
-    from rich.prompt import Confirm
+    """Open Partner app (guided setup + talk)."""
+    from .sage.app import run_partner_app
 
-    if not model:
-        m = pick_default_local()
-        if not m:
-            console.print("[red]No READY local model.[/red]")
-            if Confirm.ask("Run interactive setup now?", default=True):
-                run_interactive_setup(profile, launch_tui=False)
-            else:
-                console.print("Install a model, then:  [bold]nex sage talk[/bold]")
-            raise typer.Exit(1)
-        console.print(f"[dim]{m.label} · Partner[/dim]")
-        model = m.path
-    run_sage_tui(profile_id=profile, model_path=model or None)
+    run_partner_app(profile_id=profile, model_path=model)
 
 
 @sage_app.command("models")

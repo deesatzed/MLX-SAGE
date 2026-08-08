@@ -16,6 +16,13 @@ Destination: purpose via partnership + hives + joint beneficence + selfless.
 - Tests: `pytest tests/` **28/28** (includes `tests/test_tui_tool_policy.py`).
 - CI after P0: `.github/workflows/ci.yml` runs unit suite on push/PR (Python 3.11/3.12; no MLX weights).
 
+### UX: single entry Partner app (2026-08-08)
+- **One command:** `nex` / `nex start` / `nex main` opens `nex/sage/app.py` PartnerApp
+- In-app automation: auto profile, auto model pick, 3-step guide (model → person → commit) → chat
+- Natural language capture: `person …`, `commit …` (plus slash cmds)
+- Sidebar live direction; no multi-option CLI home menu on happy path
+- Advanced CLI remains under `sage *`, `supervise`, etc.
+
 ### UX fix: home/coach not a CLI wall (2026-08-08)
 - Home is a **short status card** + menu `talk | setup | quit` (not 5 copy-paste recipes)
 - `sage setup` / `sage coach` = **interactive questions** that write people/commits; optional open chat

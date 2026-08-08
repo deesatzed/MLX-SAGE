@@ -298,5 +298,7 @@ class SageTUI(App):
 
 
 def run_sage_tui(profile_id: str = "default", model_path: Optional[str] = None) -> None:
-    app = SageTUI(profile_id=profile_id, model_path=model_path)
-    app.run()
+    """Back-compat entry — delegates to the single Partner app."""
+    from .app import run_partner_app
+
+    run_partner_app(profile_id=profile_id, model_path=model_path)
