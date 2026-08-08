@@ -1,402 +1,516 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grokkasclate • Grok-asclate (Grok + escalate)</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
-        
-        :root {
-            --primary: #00f5ff;
-            --accent: #ff2d55;
-        }
-        
-        body {
-            font-family: 'Inter', system_ui, sans-serif;
-            background: #0a0a0a;
-            color: #f0f0f0;
-            margin: 0;
-            line-height: 1.6;
-        }
-        
-        .header {
-            background: linear-gradient(180deg, #111 0%, #0a0a0a 100%);
-            border-bottom: 1px solid #222;
-            padding: 1.5rem 0;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        .nav {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary);
-            text-decoration: none;
-        }
-        
-        .hero {
-            max-width: 1200px;
-            margin: 3rem auto 5rem;
-            padding: 0 2rem;
-            text-align: center;
-        }
-        
-        .hero h1 {
-            font-size: 3.6rem;
-            font-weight: 700;
-            line-height: 1.05;
-            margin-bottom: 1rem;
-            background: linear-gradient(90deg, #fff, #ccc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .hero .subtitle {
-            font-size: 1.5rem;
-            color: #ff2d55;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-        }
-        
-        .pain {
-            font-size: 1.1rem;
-            max-width: 680px;
-            margin: 0 auto 2.5rem;
-            color: #bbb;
-        }
-        
-        .badges {
-            display: flex;
-            gap: 0.75rem;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 2rem;
-        }
-        
-        .badge {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            padding: 0.35rem 0.9rem;
-            border-radius: 9999px;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-        
-        .cta-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        
-        .btn {
-            padding: 0.9rem 1.8rem;
-            border-radius: 9999px;
-            font-weight: 600;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.2s;
-            font-size: 1rem;
-        }
-        
-        .btn-primary {
-            background: var(--primary);
-            color: #000;
-            font-weight: 700;
-        }
-        
-        .btn-secondary {
-            background: transparent;
-            border: 1px solid #444;
-            color: #fff;
-        }
-        
-        .section {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem 4.5rem;
-        }
-        
-        .section h2 {
-            font-size: 2.1rem;
-            margin-bottom: 1.25rem;
-            font-weight: 600;
-        }
-        
-        .pain-solution {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            margin: 2.5rem 0;
-        }
-        
-        .pain-box, .solution-box {
-            background: #111;
-            border: 1px solid #222;
-            border-radius: 16px;
-            padding: 1.75rem;
-        }
-        
-        .pain-box {
-            border-color: #ff2d55;
-        }
-        
-        .solution-box {
-            border-color: #00f5ff;
-        }
-        
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-        
-        .feature-card {
-            background: #111;
-            border: 1px solid #222;
-            border-radius: 16px;
-            padding: 1.75rem;
-            transition: transform 0.2s, border-color 0.2s;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-4px);
-            border-color: #333;
-        }
-        
-        .feature-card h3 {
-            margin: 0 0 0.75rem;
-            font-size: 1.25rem;
-            color: var(--primary);
-        }
-        
-        .architecture {
-            background: #111;
-            border: 1px solid #222;
-            border-radius: 16px;
-            padding: 2rem;
-            margin: 2rem 0;
-            font-size: 0.95rem;
-        }
-        
-        .code-block {
-            background: #0a0a0a;
-            border: 1px solid #222;
-            padding: 1rem;
-            border-radius: 8px;
-            font-family: ui-monospace, monospace;
-            font-size: 0.9rem;
-            overflow-x: auto;
-            margin: 1rem 0;
-        }
-        
-        .only-we {
-            background: #0f0f0f;
-            border-left: 5px solid var(--primary);
-            padding: 1.5rem;
-            margin: 2rem 0;
-        }
-        
-        .footer {
-            text-align: center;
-            padding: 3rem 2rem;
-            color: #666;
-            border-top: 1px solid #222;
-        }
-        
-        .highlight {
-            color: var(--primary);
-        }
-        
-        .elon-note {
-            font-style: italic;
-            color: #888;
-            border-top: 1px solid #222;
-            padding-top: 1.5rem;
-            margin-top: 2rem;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MLX-SAGE — Personal sage partner on Apple Silicon</title>
+  <meta name="description" content="Local-first AI partner for purpose, people, and living direction. One command. Private by default. Optional rails for coding agents." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0c0f14;
+      --bg2: #12171f;
+      --panel: #161c26;
+      --border: #2a3344;
+      --text: #e8edf5;
+      --muted: #8b97ab;
+      --accent: #5eead4;
+      --accent2: #a78bfa;
+      --warn: #fbbf24;
+      --good: #4ade80;
+      --radius: 14px;
+      --shadow: 0 24px 80px rgba(0,0,0,.45);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 1.25rem; }
+    header {
+      position: sticky; top: 0; z-index: 20;
+      backdrop-filter: blur(12px);
+      background: rgba(12,15,20,.85);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.9rem 0; gap: 1rem;
+    }
+    .logo {
+      font-weight: 700; letter-spacing: -0.02em; font-size: 1.15rem;
+      color: var(--text);
+    }
+    .logo span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.1rem; flex-wrap: wrap; font-size: 0.92rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 3.5rem 0 2.5rem;
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 2.5rem;
+      align-items: center;
+    }
+    @media (max-width: 880px) {
+      .hero { grid-template-columns: 1fr; padding-top: 2rem; }
+    }
+    .eyebrow {
+      display: inline-flex; gap: 0.5rem; align-items: center;
+      font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: 0.85rem;
+    }
+    h1 {
+      font-size: clamp(2rem, 4.5vw, 3rem);
+      line-height: 1.12; letter-spacing: -0.03em;
+      margin: 0 0 1rem;
+    }
+    h1 em { font-style: normal; color: var(--accent); }
+    .lede { font-size: 1.15rem; color: var(--muted); margin: 0 0 1.5rem; max-width: 36rem; }
+    .cta-row { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.7rem 1.15rem; border-radius: 999px; font-weight: 600; font-size: 0.95rem;
+      border: 1px solid transparent; cursor: default;
+    }
+    .btn-primary { background: var(--accent); color: #042f2e; }
+    .btn-ghost { background: transparent; border-color: var(--border); color: var(--text); }
+    .code-inline {
+      font-family: "JetBrains Mono", monospace; font-size: 0.85rem;
+      background: var(--panel); border: 1px solid var(--border);
+      padding: 0.65rem 1rem; border-radius: 10px; color: var(--good);
+      display: inline-block;
+    }
+    .badges { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+    .badge {
+      font-size: 0.78rem; color: var(--muted); border: 1px solid var(--border);
+      padding: 0.25rem 0.65rem; border-radius: 999px; background: var(--bg2);
+    }
+
+    /* Terminal mockup */
+    .shot {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .shot-bar {
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.65rem 0.9rem; background: #0e131a; border-bottom: 1px solid var(--border);
+      font-size: 0.75rem; color: var(--muted); font-family: "JetBrains Mono", monospace;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.r { background: #ff5f57; }
+    .dot.y { background: #febc2e; }
+    .dot.g { background: #28c840; }
+    .shot-body {
+      display: grid; grid-template-columns: 32% 1fr; min-height: 280px;
+      font-family: "JetBrains Mono", monospace; font-size: 0.72rem; line-height: 1.45;
+    }
+    @media (max-width: 600px) {
+      .shot-body { grid-template-columns: 1fr; }
+      .shot-side { display: none; }
+    }
+    .shot-side {
+      background: #0f141c; border-right: 1px solid var(--border);
+      padding: 0.85rem; color: #9aa8bc;
+    }
+    .shot-side .h { color: var(--accent); font-weight: 600; margin-bottom: 0.5rem; }
+    .shot-main { padding: 0.85rem 1rem; color: #d5deea; }
+    .shot-main .banner {
+      background: #1a2332; color: var(--accent2); padding: 0.35rem 0.5rem;
+      border-radius: 6px; margin-bottom: 0.75rem; font-size: 0.68rem;
+    }
+    .shot-main .you { color: var(--good); }
+    .shot-main .sage { color: #c4b5fd; }
+    .shot-main .sys { color: var(--warn); font-style: italic; }
+    .shot-input {
+      border-top: 1px solid var(--border); padding: 0.55rem 0.9rem;
+      color: var(--muted); background: #0e131a; font-family: "JetBrains Mono", monospace; font-size: 0.72rem;
+    }
+    .caption {
+      text-align: center; font-size: 0.85rem; color: var(--muted); margin: 0.65rem 0 0;
+    }
+    .caption strong { color: var(--text); font-weight: 500; }
+
+    section { padding: 3rem 0; }
+    section h2 {
+      font-size: 1.75rem; letter-spacing: -0.02em; margin: 0 0 0.75rem;
+    }
+    section .sub { color: var(--muted); max-width: 40rem; margin: 0 0 1.75rem; }
+    .grid-3 {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+    }
+    @media (max-width: 800px) { .grid-3 { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem 1.3rem;
+    }
+    .card h3 { margin: 0 0 0.45rem; font-size: 1.05rem; }
+    .card p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+    .card .ico { font-size: 1.35rem; margin-bottom: 0.5rem; }
+
+    .compare {
+      width: 100%; border-collapse: collapse; font-size: 0.92rem;
+      background: var(--bg2); border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .compare th, .compare td {
+      text-align: left; padding: 0.85rem 1rem; border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .compare th { background: #0f141c; color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .compare tr:last-child td { border-bottom: none; }
+    .compare td:last-child { color: var(--accent); }
+
+    .shots-row {
+      display: grid; grid-template-columns: 1fr; gap: 2.5rem;
+    }
+    .modes {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+    }
+    @media (max-width: 700px) { .modes { grid-template-columns: 1fr; } }
+    .mode {
+      border-radius: var(--radius); padding: 1.35rem; border: 1px solid var(--border);
+    }
+    .mode.partner { background: linear-gradient(145deg, #0f1f1c, var(--bg2)); border-color: #1f4d45; }
+    .mode.rails { background: linear-gradient(145deg, #1a1528, var(--bg2)); border-color: #3d2f66; }
+    .mode h3 { margin: 0 0 0.4rem; }
+    .mode p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+    .mode code {
+      font-family: "JetBrains Mono", monospace; font-size: 0.8rem;
+      color: var(--text); background: rgba(0,0,0,.25); padding: 0.15rem 0.4rem; border-radius: 4px;
+    }
+
+    .install {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem 1.4rem;
+      font-family: "JetBrains Mono", monospace; font-size: 0.85rem;
+      color: var(--good); white-space: pre-wrap;
+    }
+
+    footer {
+      border-top: 1px solid var(--border); padding: 2rem 0 3rem;
+      color: var(--muted); font-size: 0.9rem;
+    }
+    footer .row { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
+  </style>
 </head>
 <body>
-    <header class="header">
-        <div class="nav">
-            <a href="#" class="logo">OptiqMTPMLX</a>
-            <div>
-                <a href="https://github.com/deesatzed/OptiqMTPMLX" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.9rem;">GitHub</a>
-            </div>
-        </div>
-    </header>
+  <header>
+    <div class="wrap nav">
+      <div class="logo">MLX<span>-SAGE</span></div>
+      <nav class="nav-links">
+        <a href="#for">What for</a>
+        <a href="#unique">Unique</a>
+        <a href="#why">Why want it</a>
+        <a href="#tour">Tour</a>
+        <a href="#start">Start</a>
+        <a href="https://github.com/deesatzed/MLX-SAGE">GitHub</a>
+      </nav>
+    </div>
+  </header>
 
-    <div class="hero">
+  <main>
+    <div class="wrap hero">
+      <div>
+        <div class="eyebrow">Partner · local · private</div>
+        <h1>AI for <em>purpose</em>, not just productivity</h1>
+        <p class="lede">
+          MLX-SAGE is a personal sage partner on Apple Silicon. One command opens a guided app:
+          who matters, what you promised, a living north star — with a local model when you have one.
+        </p>
+        <div class="cta-row">
+          <span class="btn btn-primary">nex</span>
+          <span class="btn btn-ghost">or nex start · nex main</span>
+        </div>
+        <div class="code-inline">pip install -e ".[tui]" && nex</div>
         <div class="badges">
-            <div class="badge">Apple Silicon Native</div>
-            <div class="badge">OptiQ + MTP</div>
-            <div class="badge">Grokkasclate — explained like you're a freshman</div>
-            <div class="badge">Sentinel Policy + Traces</div>
+          <span class="badge">Local MLX first</span>
+          <span class="badge">Living direction</span>
+          <span class="badge">One-app guided UX</span>
+          <span class="badge">Optional agent rails</span>
+          <span class="badge">MIT</span>
         </div>
-        
-        <h1>Your agent just tried to<br>touch production.<br><span style="color:#ff2d55">Local policy blocked it.</span><br>Grok reviewed the exact diff<br>and gave you a safer plan<br>in 380 ms.</h1>
-        
-        <p class="pain">
-            All on your M4 Pro. Full replayable trace. Local speed for 90% of the work.<br>
-            Real Grok judgment for the moments that matter.
+      </div>
+
+      <!-- Hero screenshot mockup -->
+      <div>
+        <div class="shot" aria-label="Partner app UI mockup">
+          <div class="shot-bar">
+            <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+            <span style="margin-left:0.5rem">MLX-SAGE · Partner</span>
+          </div>
+          <div class="shot-body">
+            <div class="shot-side">
+              <div class="h">Your direction</div>
+              Stay present for family and finish the shop rebuild without losing the people who need me.
+              <br /><br />
+              People: <strong style="color:#e8edf5">2</strong><br />
+              · Sam (sibling)<br />
+              · Jordan (friend)<br /><br />
+              Open commits: <strong style="color:#e8edf5">1</strong><br />
+              · Call Sam Sunday → Sam<br /><br />
+              <span style="opacity:.7">Model: Llama-3.2-3B-4bit</span>
+            </div>
+            <div class="shot-main">
+              <div class="banner">Talk with your sage partner · private · local</div>
+              <div class="you">You: I’ve been busy “shipping” and avoiding the hard call home.</div>
+              <br />
+              <div class="sage">Sage: The work is real — and so is Sam. Your commitment is still open: Call Sam Sunday. Want to keep it, reschedule, or name what you’re protecting by delaying?</div>
+              <br />
+              <div class="sys">Direction stays on the left. You live the life.</div>
+            </div>
+          </div>
+          <div class="shot-input">Talk…</div>
+        </div>
+        <p class="caption"><strong>Partner chat</strong> — living direction sidebar + local dialogue</p>
+      </div>
+    </div>
+
+    <section id="for" style="background: var(--bg2); border-block: 1px solid var(--border);">
+      <div class="wrap">
+        <h2>What is it for?</h2>
+        <p class="sub">Not another generic chatbot. A continuity layer for a human life next to powerful machines.</p>
+        <div class="grid-3">
+          <div class="card">
+            <div class="ico">🧭</div>
+            <h3>Purpose &amp; direction</h3>
+            <p>Build a north star from your people, commitments, and reflections — not from viral prompts.</p>
+          </div>
+          <div class="card">
+            <div class="ico">👥</div>
+            <h3>People who matter</h3>
+            <p>Keep a mattering map: who needs you, who you need, and small acts that prove it.</p>
+          </div>
+          <div class="card">
+            <div class="ico">🔒</div>
+            <h3>Private partnership</h3>
+            <p>Partner voice runs on local MLX when weights are READY. Your profile stays on disk.</p>
+          </div>
+          <div class="card">
+            <div class="ico">🛠️</div>
+            <h3>Solo builders (optional)</h3>
+            <p>Rails mode can supervise coding agents with real policy and budgeted cloud Grok — not as your sage.</p>
+          </div>
+          <div class="card">
+            <div class="ico">🌅</div>
+            <h3>Life transitions</h3>
+            <p>Retirement, career change, empty-nest, post-exit: when titles thin out, direction still needs a home.</p>
+          </div>
+          <div class="card">
+            <div class="ico">🤝</div>
+            <h3>Healthy AI stance</h3>
+            <p>Partner — not servant, god, or romance. Joint beneficence: you + honest AI role + shared good.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="unique">
+      <div class="wrap">
+        <h2>Why it’s unique</h2>
+        <p class="sub">Most products sell answers. MLX-SAGE sells continuity of who you are with AI in the room.</p>
+        <table class="compare">
+          <thead>
+            <tr><th>Typical AI app</th><th>MLX-SAGE</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Chat evaporates when the tab closes</td>
+              <td>Living profile + direction on your machine</td>
+            </tr>
+            <tr>
+              <td>Cloud-first for everything personal</td>
+              <td>Local-first partner voice; cloud only for optional rails</td>
+            </tr>
+            <tr>
+              <td>Command sprawl &amp; “read the docs first”</td>
+              <td>One entry: <code>nex</code> — guided model → person → commit → talk</td>
+            </tr>
+            <tr>
+              <td>“Do my work / entertain me”</td>
+              <td>Who matters? What did I promise? What’s my north star?</td>
+            </tr>
+            <tr>
+              <td>Safety as UI theater</td>
+              <td>Real policy on Rails; Partner never pretends Grok is the sage</td>
+            </tr>
+            <tr>
+              <td>Meaning as brand copy</td>
+              <td>Joint beneficence encoded in hive/sit tools + partner prompts</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="modes" style="margin-top: 1.5rem;">
+          <div class="mode partner">
+            <h3>Partner <code>nex</code></h3>
+            <p>The product. Local sage, people, commits, direction. This is what you open every week.</p>
+          </div>
+          <div class="mode rails">
+            <h3>Rails <code>nex supervise</code></h3>
+            <p>Optional. Supervise coding agents, propellant-capped XAI Grok, WattOS reports. Not your life coach.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="why" style="background: var(--bg2); border-block: 1px solid var(--border);">
+      <div class="wrap">
+        <h2>Why you would want it</h2>
+        <p class="sub">Concrete reasons — not vaporware.</p>
+        <div class="grid-3">
+          <div class="card">
+            <h3>1. Continuity</h3>
+            <p>When jobs, titles, or projects end, your people and promises don’t. The app keeps that thread.</p>
+          </div>
+          <div class="card">
+            <h3>2. Privacy</h3>
+            <p>Hard conversations about family and purpose don’t need a SaaS training pipeline by default.</p>
+          </div>
+          <div class="card">
+            <h3>3. Low ceremony</h3>
+            <p>One command. Empty states are screens inside the app — not a wall of CLI recipes.</p>
+          </div>
+          <div class="card">
+            <h3>4. Honest roles</h3>
+            <p>No romantic AI. No fake consciousness claims. Partner integrity is part of the design.</p>
+          </div>
+          <div class="card">
+            <h3>5. Builder hygiene</h3>
+            <p>If you still ship code with agents, Rails can block dumb paths and show real end-of-run numbers.</p>
+          </div>
+          <div class="card">
+            <h3>6. You own it</h3>
+            <p>MIT, Python, local files. Fork it, thin it, or run it offline once models are on disk.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tour">
+      <div class="wrap">
+        <h2>Visual tour</h2>
+        <p class="sub">Illustrations of the real Partner TUI layout (not stock photos).</p>
+        <div class="shots-row">
+
+          <div>
+            <div class="shot">
+              <div class="shot-bar">
+                <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+                <span style="margin-left:0.5rem">First run · who matters</span>
+              </div>
+              <div class="shot-body" style="grid-template-columns: 1fr;">
+                <div class="shot-main">
+                  <div class="banner">Step 2 of 3 — who matters? (one name is enough)</div>
+                  <div style="font-size:0.85rem;line-height:1.55;font-family:DM Sans,sans-serif">
+                    <strong>Who is one person that matters to you?</strong><br /><br />
+                    Type their first name and press Enter.<br /><br />
+                    Examples: Sam · Alex · Mom<br /><br />
+                    Or type <em>skip</em> to continue without this.
+                  </div>
+                </div>
+              </div>
+              <div class="shot-input">Type a name, or skip…</div>
+            </div>
+            <p class="caption"><strong>Guided setup</strong> — no CLI memorization; the app asks</p>
+          </div>
+
+          <div>
+            <div class="shot">
+              <div class="shot-bar">
+                <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+                <span style="margin-left:0.5rem">Partner · ready</span>
+              </div>
+              <div class="shot-body">
+                <div class="shot-side">
+                  <div class="h">Your direction</div>
+                  Show up for the people who still need me while I build for myself.
+                  <br /><br />
+                  · Sam (sibling)<br />
+                  · Call Sam Sunday
+                </div>
+                <div class="shot-main">
+                  <div class="banner">Talk with your sage partner · private · local</div>
+                  <div class="you">You: person Jordan friend</div><br />
+                  <div class="sys">Saved Jordan (friend)</div><br />
+                  <div class="you">You: I’m torn between the workshop and family dinner.</div><br />
+                  <div class="sage">Sage: Both are real needs. Jordan’s on your map now. What would “enough” look like for dinner this week without abandoning the build?</div>
+                </div>
+              </div>
+              <div class="shot-input">Talk…</div>
+            </div>
+            <p class="caption"><strong>Chat + capture</strong> — natural <code>person</code> / <code>commit</code> update the same profile</p>
+          </div>
+
+          <div>
+            <div class="shot">
+              <div class="shot-bar">
+                <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+                <span style="margin-left:0.5rem">Rails · WattOS end report (optional)</span>
+              </div>
+              <div class="shot-body" style="grid-template-columns: 1fr;">
+                <div class="shot-main" style="font-size:0.78rem">
+                  <div class="banner" style="color:#fbbf24">WattOS — Safety &amp; Efficiency [Rails]</div>
+                  role: Rails (supervise / agent / Grok) — not Partner sage<br />
+                  wall time (s): 42.0<br />
+                  policy decisions: 5 · blocks: 1 · reviews: 2<br />
+                  grok escalations: 1 · propellant: 1/3<br />
+                  local gen tokens: n/a (child agent)<br />
+                  <span class="sys">Grok is for hard agent decisions, not sage partnership chat</span>
+                </div>
+              </div>
+            </div>
+            <p class="caption"><strong>Rails proof</strong> — optional; clearly labeled so it never pretends to be the sage</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <section id="start" style="background: var(--bg2); border-block: 1px solid var(--border);">
+      <div class="wrap">
+        <h2>Start in one minute</h2>
+        <p class="sub">Apple Silicon recommended. Python 3.11+.</p>
+        <div class="install">cd MLX-SAGE
+python -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -e ".[tui]"
+export PYTHONPATH=.
+nex</div>
+        <p style="color:var(--muted);margin-top:1rem;font-size:0.95rem">
+          Need a model? The app tells you. Or:
+          <code style="color:var(--text)">nex models recommend "chat" --max-memory 16</code>
+          then download and press F5 in the app.
         </p>
-        
-        <div class="cta-buttons">
-            <a href="#quickstart" class="btn btn-primary">Clone &amp; Run the Demo →</a>
-            <a href="https://github.com/deesatzed/OptiqMTPMLX" class="btn btn-secondary">View Source</a>
-        </div>
-    </div>
-
-    <div class="section">
-        <h2>The Problem No One Else Solves</h2>
-        
-        <div class="pain-solution">
-            <div class="pain-box">
-                <h3 style="color:#ff2d55">Cloud-only agents</h3>
-                <ul>
-                    <li>Every token, every file read, every tool call → someone else's servers</li>
-                    <li>Insane cost + latency</li>
-                    <li>Zero privacy for your code, secrets, or proprietary work</li>
-                    <li>You have no control when the model hallucinates a bad deploy</li>
-                </ul>
-            </div>
-            <div class="solution-box">
-                <h3 style="color:#00f5ff">Pure local agents</h3>
-                <ul>
-                    <li>Fast and private... until the model goes rogue</li>
-                    <li>Weaker reasoning on hard problems</li>
-                    <li>No audit trail. No rollback. No proof of what happened.</li>
-                    <li>You either babysit it constantly or cross your fingers</li>
-                </ul>
-            </div>
-        </div>
-        
-        <p style="text-align:center; font-size:1.15rem; max-width:720px; margin: 1.5rem auto;">
-            <strong>Only OptiqMTPMLX gives you both at the same time — with Grok as the smart escalation layer and real policy guardrails.</strong>
+        <p style="margin-top:1.25rem">
+          Full developer docs: <a href="../README.md">README.md</a> ·
+          Source: <a href="https://github.com/deesatzed/MLX-SAGE">github.com/deesatzed/MLX-SAGE</a>
         </p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap row">
+      <div>
+        <strong style="color:var(--text)">MLX-SAGE</strong> — sage partner on MLX.<br />
+        Package name <code>nex</code> · License MIT · H-track human product.
+      </div>
+      <div>
+        Partner ≠ Rails · Local first · No romantic companion mode.
+      </div>
     </div>
-
-    <div class="section">
-        <h2>What Only This Stack Can Deliver</h2>
-        
-        <div class="features-grid">
-            <div class="feature-card">
-                <h3>Local OptiQ + MTP Speed</h3>
-                <p>Native multi-model support for the best OptiQ-4bit quants (Nex, Qwen3.5/3.6, Gemma-4...) with speculative decoding. Most work happens at laptop speed and low power.</p>
-            </div>
-            <div class="feature-card">
-                <h3>Real Grok Escalation</h3>
-                <p>When policy or the local auditor flags risk, the *exact* structured context is sent to real Grok (xAI). You get frontier reasoning only where it matters — and a full trace of why it was called.</p>
-            </div>
-            <div class="feature-card">
-                <h3>Sentinel-Grade Safety</h3>
-                <p>Deterministic policy (ported from Cortex Sentinel) + continuous enforcement + rollback. Hard blocks on secrets, protected paths, external network, and production deploys. MCP-Cortex contracts declare tool effects *before* they run.</p>
-            </div>
-            <div class="feature-card">
-                <h3>Unified Auditable Traces</h3>
-                <p>Every decision — local OptiQ or Grok — is recorded with digests, risk class, effects, and reasoning. Replay the entire session. Prove what happened.</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="section">
-        <div class="architecture">
-            <h2 style="margin-top:0">The Architecture (Grok in the Loop)</h2>
-            <p><strong>Local OptiQ Layer</strong> (Nex) → Fast multi-model inference with MTP + safe sandbox tools</p>
-            <p><strong>Sentinel Supervision</strong> (Cortex concepts) → Policy engine, continuous enforcer, rollback, approval queue</p>
-            <p><strong>MCP-Cortex Contracts</strong> → Structured effect declarations for every tool</p>
-            <p><strong>Grok Escalation</strong> → When REVIEW is required, rich context goes to real Grok → structured verdict + safer alternative</p>
-            <p><strong>Unified Traces + TUI</strong> → Everything is replayable. Local vs Grok decisions are explicit.</p>
-        </div>
-    </div>
-
-    <div id="quickstart" class="section">
-        <h2>Quick Start (Tested on Fresh Clone)</h2>
-        
-        <div class="code-block">
-# Modern fast path
-git clone https://github.com/deesatzed/OptiqMTPMLX.git
-cd OptiqMTPMLX
-uv venv .venv
-uv pip install -e '.[server,tui,rag]'
-
-# The signature "Grok in the Loop" experience
-GROK_IN_LOOP=true nex agent "Build a small FastAPI hello world in the sandbox, add tests, and verify it"
-
-# Hardened daily driver (new)
-nex supervise --install
-python scripts/hardened_supervision_showpiece.py
-nex trace-gallery --redact --out /tmp/audit-gallery.md
-
-# Or the beautiful TUI (now with live approvals queue)
-./run.sh tui
-        </div>
-        
-        <p style="color:#888">Requires Apple Silicon with Metal. XAI_API_KEY optional for real escalation (falls back gracefully).</p>
-    </div>
-
-    <div class="section">
-        <div class="only-we">
-            <h2 style="margin-top:0">The "Only We Can" Claims</h2>
-            <ul>
-                <li>The only local runner with native MTP + OptiQ multi-model + real Grok escalation under one policy layer.</li>
-                <li><strong>The only practical way to keep using the powerful agents you already use every day (Claude Code, Cursor, Codex, Aider, etc.) while finally getting real safety, auditability, and frontier intelligence only where it matters — without forcing you to abandon your daily driver.</strong> Most "local safety" tools make you switch to their own agent. This is the only stack that wraps the exact agents developers have already adopted and are productive with, using PTY runner + trust prompt injection + approval queue + real ContinuousEnforcer (live fs observation) + one-command `--install`. You keep your workflow. You just stop being scared of it and start getting Grok-quality oversight + shareable redacted proof on the hard calls.</li>
-                <li>The only one that produces traces explicitly separating "what the local OptiQ model decided" vs "what Grok decided" — with full context and digests.</li>
-                <li>Built by Grok. For the xAI era. Maximum truth. Minimum bloat. Real engineering.</li>
-            </ul>
-        </div>
-    </div>
-
-    <div class="section">
-        <h2>Showpiece Assets</h2>
-        <ul>
-            <li><strong>Landing page</strong>: <code>docs/index.html</code> (serve with <code>cd docs && python -m http.server 8080</code>)</li>
-            <li><strong>Detailed brief</strong>: <code>docs/showpiece/optiq-mtp-mlx.md</code></li>
-            <li><strong>New hardened reproducible showpiece</strong> (run on any fresh clone): <code>scripts/grokkasclate_showpiece.py</code></li>
-            <li><strong>Video script</strong> (designed for Elon/xAI attention): <code>docs/grok_in_loop_demo_video_script.md</code></li>
-            <li><strong>Architecture fusion plan</strong>: <code>ARCHITECTURE_MERGE.md</code></li>
-        </ul>
-    </div>
-
-    <div class="section">
-        <h2>Screenshots &amp; Visuals</h2>
-        <p><strong>Status:</strong> No recorded screenshots or asciinema casts are published yet.
-        The list below is a <em>suggested capture plan</em> only — not proof that media exists.</p>
-        <ul>
-            <li><strong>Sage Partner TUI</strong>: <code>nex sage tui</code> dialogue + direction (Ctrl+D).</li>
-            <li><strong>Live PTY + Enforcer</strong>: Agent writes .env → real block (showpiece or <code>nex supervise</code>).</li>
-            <li><strong>Nex TUI policy queue</strong>: Real Sentinel REVIEW/BLOCK + a/b/o gates tools.</li>
-            <li><strong>WattOS / Oversight report</strong>: End-of-run counters (not hardware watts).</li>
-            <li><strong>Redacted gallery</strong>: <code>nex trace-gallery --redact</code>.</li>
-        </ul>
-        <p><strong>How to record later:</strong>
-        <code>asciinema rec --command 'python scripts/wattos_superintendant_demo.py --max-grok 0 --no-grok' demo.cast</code>
-        then embed from asciinema.org if desired.</p>
-    </div>
-
-    <footer class="footer">
-        <p class="elon-note">
-            Built with Grok. For the xAI era.<br>
-            Efficiency that would make Tesla proud. Autonomy with the audit trail Optimus will need.<br>
-            Truth-seeking infrastructure for agentic systems.
-        </p>
-        <p><a href="https://github.com/deesatzed/OptiqMTPMLX">github.com/deesatzed/OptiqMTPMLX</a></p>
-    </footer>
+  </footer>
 </body>
 </html>
