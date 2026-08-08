@@ -65,9 +65,10 @@ from .session import ChatSession
 app = typer.Typer(
     name="nex",
     help=(
-        "MLX-SAGE (Sage-first): personal sage partner on Apple Silicon — "
-        "`nex sage tui`, hive (`nex we`), Superintendant (`nex supervise`). "
-        "Also local multi-model Nex: chat, agent, models, serve, MCP (mlx-lm / OptiQ)."
+        "MLX-SAGE — Sage-first on Apple Silicon.\n\n"
+        "[Partner] `nex home` / `nex sage` · `nex sage tui` · `nex sage coach`\n"
+        "[Rails]   `nex supervise` · `nex agent` · optional Grok (XAI) — not your sage voice.\n"
+        "Also: chat, models, serve, MCP (local multi-model substrate)."
     ),
     add_completion=False,
     rich_markup_mode="rich",
@@ -770,7 +771,7 @@ def trace_gallery(
 
 
 @app.command()
-def supervise(
+def supervise(  # [Rails] Superintendant — not Partner sage voice
     agent: str = typer.Argument(None, help="Agent to supervise: claude, codex, or custom command (optional with --install)"),
     workspace: str = typer.Option(".", "--workspace", "-w", help="Workspace dir (use temp for safety)"),
     grok_in_loop: bool = typer.Option(False, "--grok-in-loop", help="Deprecated synonym for --grok; enable Grok escalation"),
@@ -785,8 +786,9 @@ def supervise(
     install: bool = typer.Option(False, "--install", help="One-command setup: install aliases/hooks so your daily claude/codex always use Grok-in-the-Loop (needs-based permanent adoption)"),
 ):
     """
-    Superintendant: supervise real external AI coding agents under Sentinel policy,
+    [Rails] Superintendant: supervise real external AI coding agents under Sentinel policy,
     propellant-capped Grok escalation, and WattOS end report.
+    Grok is for hard agent decisions — not your Partner sage voice (`nex sage tui`).
 
     Examples:
       nex supervise claude .
@@ -857,15 +859,64 @@ alias codex='grok-codex'
 
 
 # ------------------------------------------------------------------
+# home — partnership status (UX Rec 1)
+# ------------------------------------------------------------------
+
+
+@app.command("home")
+def home_cmd(
+    profile: str = typer.Option("default", "--profile", "-p"),
+):
+    """[Partner] Partnership home — north star, people, commits, model & Grok status."""
+    from .sage.home import build_home_snapshot, render_coach_text, render_home_text
+
+    snap = build_home_snapshot(profile)
+    console.print(render_home_text(snap))
+    if snap.needs_coach:
+        console.print("\n[yellow]Tip:[/yellow] run [bold]nex sage coach[/bold] for first-run steps.\n")
+
+
+# ------------------------------------------------------------------
 # sage — Protocol Sage Partner (personal partnership protocol)
 # ------------------------------------------------------------------
 
 sage_app = typer.Typer(
     name="sage",
-    help="Protocol Sage Partner: standing partnership for purpose — not a companion sim",
+    help=(
+        "[Partner] Protocol Sage — purpose partnership (local MLX), not a companion sim. "
+        "Default: partnership home. Rails/Grok live under supervise/agent."
+    ),
     add_completion=False,
+    invoke_without_command=True,
 )
 app.add_typer(sage_app, name="sage")
+
+
+@sage_app.callback(invoke_without_command=True)
+def sage_root(
+    ctx: typer.Context,
+    profile: str = typer.Option("default", "--profile", "-p"),
+):
+    """Partnership home when no subcommand is given (UX Rec 1)."""
+    if ctx.invoked_subcommand is not None:
+        return
+    from .sage.home import build_home_snapshot, render_home_text
+
+    snap = build_home_snapshot(profile)
+    console.print(render_home_text(snap))
+    if snap.needs_coach:
+        console.print("\n[yellow]Tip:[/yellow] run [bold]nex sage coach[/bold] for first-run steps.\n")
+
+
+@sage_app.command("coach")
+def sage_coach(
+    profile: str = typer.Option("default", "--profile", "-p"),
+):
+    """[Partner] First-run coach — local model + thin profile only (no Rails tour)."""
+    from .sage.home import build_home_snapshot, render_coach_text
+
+    snap = build_home_snapshot(profile)
+    console.print(render_coach_text(snap))
 
 
 @sage_app.command("tui")
@@ -877,19 +928,29 @@ def sage_tui(
         "-m",
         help="Local model path (default: first complete MLX model found)",
     ),
+    skip_coach: bool = typer.Option(
+        False,
+        "--skip-coach",
+        help="Do not print first-run coach when model missing",
+    ),
 ):
-    """Conversational Sage Partner TUI — dialogue with local model + your memory."""
+    """[Partner] Conversational Sage TUI — local model + your memory."""
     from .sage.tui import run_sage_tui
     from .sage.dialog import list_models_report
     from .sage.local_models import pick_default_local
+    from .sage.home import build_home_snapshot, render_coach_text
 
     if not model:
         m = pick_default_local()
         if not m:
             console.print("[red]No complete local MLX chat model found.[/red]")
-            console.print(list_models_report())
+            if not skip_coach:
+                snap = build_home_snapshot(profile)
+                console.print(render_coach_text(snap))
+            else:
+                console.print(list_models_report())
             raise typer.Exit(1)
-        console.print(f"[dim]Using local model: {m.label} ({m.size_gb} GB)[/dim]")
+        console.print(f"[dim]Using local model: {m.label} ({m.size_gb} GB) · Partner mode[/dim]")
         model = m.path
     run_sage_tui(profile_id=profile, model_path=model or None)
 

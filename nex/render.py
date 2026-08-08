@@ -150,10 +150,12 @@ def print_welcome(model_name: str = "Nex / OptiQ model"):
     accent = get_color("primary")
     console.print(
         Panel.fit(
-            f"[bold {accent}]Nex[/bold {accent}] — [dim]{model_name}[/dim]\n"
-            "Apple Silicon via [green]mlx-lm[/green]  •  Multi-Model OptiQ support\n\n"
+            f"[bold {accent}]MLX-SAGE · Rails chat[/bold {accent}] — [dim]{model_name}[/dim]\n"
+            "Local multi-model substrate (mlx-lm). "
+            "[bold]Partner mode:[/bold] [cyan]nex sage tui[/cyan] / [cyan]nex home[/cyan]\n"
+            "Grok (XAI) is for supervise/agent escalation — not sage voice.\n\n"
             "Type [bold]/help[/bold] for commands. [bold]Ctrl-C[/bold] or [bold]/quit[/bold] to exit.\n"
-            "Discover models with: [bold]nex models list[/bold]",
+            "Discover models: [bold]nex models list[/bold] · status: [bold]nex home[/bold]",
             border_style=accent,
         )
     )

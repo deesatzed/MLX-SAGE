@@ -50,7 +50,8 @@ class WattOSReport:
 def render_wattos_text(report: WattOSReport) -> str:
     """Plain-text WattOS panel for tests and non-Rich paths."""
     lines = [
-        "WattOS — Safety & Efficiency",
+        "WattOS — Safety & Efficiency [Rails]",
+        "role: Rails (supervise / agent / Grok) — not Partner sage voice",
         f"mode: {report.mode}",
         f"agent: {report.agent}",
         f"wall time (s): {report.wall_time_s:.1f}",
@@ -64,6 +65,7 @@ def render_wattos_text(report: WattOSReport) -> str:
         f"grok status: {report.grok_status}",
         f"note: {report.note}",
         "footnote: v1 metrics are counters/propellant/wall; not hardware watt meters",
+        "footnote: Grok is for hard agent decisions, not sage partnership chat",
     ]
     return "\n".join(lines)
 
@@ -79,7 +81,12 @@ def print_wattos_report(report: WattOSReport, console=None) -> None:
         return
 
     c = console or Console()
-    table = Table(title=f"WattOS — Safety & Efficiency ({report.mode})", show_header=False, box=None)
+    table = Table(
+        title=f"WattOS — Safety & Efficiency [Rails] ({report.mode})",
+        show_header=False,
+        box=None,
+    )
+    table.add_row("role", "Rails (supervise / agent / Grok) — not Partner sage")
     table.add_row("agent", str(report.agent))
     table.add_row("wall time (s)", f"{report.wall_time_s:.1f}")
     table.add_row("policy decisions", str(report.policy_decisions))
@@ -95,10 +102,11 @@ def print_wattos_report(report: WattOSReport, console=None) -> None:
         Panel(
             table,
             border_style="cyan",
-            title="WattOS: local-first proof + selective Grok + real policy",
+            title="WattOS [Rails]: local-first proof + selective Grok + real policy",
         )
     )
     c.print(
         "[dim]v1 metrics: counters, propellant, wall time"
-        " (and local tok/tps when MLX ran). Not hardware watt meters.[/dim]\n"
+        " (and local tok/tps when MLX ran). Not hardware watt meters. "
+        "Grok ≠ sage partner voice — use [cyan]nex sage tui[/cyan] for Partner mode.[/dim]\n"
     )

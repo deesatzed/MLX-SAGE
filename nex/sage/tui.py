@@ -1,8 +1,9 @@
 """Personal Sage Partner TUI — conversational, profile-aware.
 
-Run:  nex sage tui
+UX: open ritual (receipt), slash capture (/commit /person …), quit reflect,
+Partner vs Rails labels.
 
-Stage 3 polish: clearer status, Markdown transcript, busy guard, honest empty-model state.
+Run:  nex sage tui
 """
 
 from __future__ import annotations
@@ -17,6 +18,12 @@ from textual.containers import VerticalScroll
 from textual.widgets import Footer, Header, Input, Static, Markdown
 
 from .dialog import SageDialog, list_models_report
+from .home import (
+    LABEL_PARTNER,
+    build_home_snapshot,
+    parse_and_apply_capture,
+    render_open_ritual_markdown,
+)
 from .local_models import pick_default_local
 from .partner import load_or_create_profile
 
@@ -38,11 +45,12 @@ class SageTUI(App):
     """
 
     BINDINGS = [
-        Binding("ctrl+q", "quit", "Quit"),
+        Binding("ctrl+q", "quit_ritual", "Quit"),
         Binding("ctrl+d", "show_direction", "Direction"),
         Binding("ctrl+e", "export_pack", "Export"),
         Binding("ctrl+n", "new_chat", "New chat"),
         Binding("ctrl+r", "refresh_status", "Refresh"),
+        Binding("ctrl+h", "show_home", "Home"),
     ]
 
     def __init__(
@@ -56,19 +64,24 @@ class SageTUI(App):
         self.profile = load_or_create_profile(profile_id)
         self.dialog: Optional[SageDialog] = None
         self._busy = False
-        self._transcript: list[tuple[str, str]] = []  # (role, text)
+        self._transcript: list[tuple[str, str]] = []
+        self._quit_armed = False
+        self._awaiting_quit_reflect = False
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
         yield Static("Loading…", id="status")
         with VerticalScroll(id="scroll"):
             yield Markdown("*Starting…*", id="log")
-        yield Input(placeholder="Talk with your sage partner… (Enter to send)", id="input")
+        yield Input(
+            placeholder="Talk… or /commit /person /reflect /direction /help · Ctrl+Q quit",
+            id="input",
+        )
         yield Footer()
 
     def on_mount(self) -> None:
-        self.title = "MLX-SAGE · Sage Partner"
-        self.sub_title = "purpose · partnership · living direction"
+        self.title = f"MLX-SAGE · {LABEL_PARTNER}"
+        self.sub_title = "purpose · partnership · living direction · not Rails/Grok chat"
         status = self.query_one("#status", Static)
         local = pick_default_local()
         if self.model_path:
@@ -76,43 +89,36 @@ class SageTUI(App):
         elif local:
             model = local.path
             status.update(
-                f"Model: {local.label} ({local.size_gb} GB) · profile: {self.profile_id}"
+                f"[Partner] Model: {local.label} ({local.size_gb} GB) · profile: {self.profile_id}"
             )
         else:
-            status.update("No complete local model found — install weights, then restart")
+            status.update("[Partner] No complete local model — install weights, then restart")
             self._set_log(
                 "### No complete MLX chat model on disk\n\n"
                 + "```\n"
                 + list_models_report()
                 + "\n```\n\n"
-                + "Place a full mlx-lm model under `~/.mtplx/models` (config + weights) "
-                + "or pass `-m /path/to/model`.\n\n"
-                + "Only **complete** folders show as READY in `nex sage models`."
+                + "Run **`nex sage coach`** for first-run steps, or place a full mlx-lm model "
+                + "under `~/.mtplx/models` / pass `-m /path`.\n\n"
+                + f"*{LABEL_PARTNER} needs local weights. Grok is Rails-only.*"
             )
             return
         try:
             self.dialog = SageDialog(self.profile, model_path=model)
-            status.update(f"Loading model… {Path(model).name}")
+            status.update(f"[Partner] Loading model… {Path(model).name}")
             self.dialog.ensure_engine()
-            d = self.profile.build_direction()
-            north = d.get("north_star") or "No direction yet — talk freely; direction will form."
-            status.update(f"Ready · {Path(model).name} · profile `{self.profile_id}`")
-            self._set_log(
-                "### Sage partner ready\n\n"
-                f"**Your direction so far**\n\n{north}\n\n"
-                "Talk naturally.\n\n"
-                "| Key | Action |\n|-----|--------|\n"
-                "| Ctrl+D | Show / refresh direction |\n"
-                "| Ctrl+E | Export shareable pack |\n"
-                "| Ctrl+N | New chat (keeps profile) |\n"
-                "| Ctrl+R | Refresh status line |\n"
-                "| Ctrl+Q | Quit |\n"
+            status.update(
+                f"[Partner] Ready · {Path(model).name} · profile `{self.profile_id}`"
             )
+            # Rec 4 — open ritual: receipt-style welcome
+            snap = build_home_snapshot(self.profile_id)
+            self._set_log(render_open_ritual_markdown(snap))
         except Exception as e:
-            status.update("Model load failed")
+            status.update("[Partner] Model load failed")
             self._set_log(
                 f"### Could not load model\n\n```\n{e}\n```\n\n"
-                f"```\n{list_models_report()}\n```"
+                f"```\n{list_models_report()}\n```\n\n"
+                "Try `nex sage coach`."
             )
             self.dialog = None
         self.query_one("#input", Input).focus()
@@ -129,7 +135,8 @@ class SageTUI(App):
                 parts.append(f"**Sage:** {text}")
             else:
                 parts.append(f"*{text}*")
-        self._set_log("\n\n".join(parts) if parts else "*Empty thread — say hello.*")
+        body = "\n\n".join(parts) if parts else "*Empty thread — say hello or `/help`.*"
+        self._set_log(body)
         try:
             self.query_one("#scroll", VerticalScroll).scroll_end(animate=False)
         except Exception:
@@ -138,14 +145,41 @@ class SageTUI(App):
     def on_input_submitted(self, event: Input.Submitted) -> None:
         text = (event.value or "").strip()
         event.input.value = ""
-        if not text or self._busy:
+        if self._busy:
             return
+
+        # Rec 4 — quit reflect path
+        if self._awaiting_quit_reflect:
+            if text:
+                self.profile.add_reflection(text)
+                self._transcript.append(("sys", f"Saved reflection for direction: {text[:200]}"))
+                self._render_transcript()
+            self.exit()
+            return
+
+        if not text:
+            return
+
+        # Rec 3 — slash capture (does not require model)
+        cap = parse_and_apply_capture(text, self.profile)
+        if cap is not None:
+            self._quit_armed = False
+            self._transcript.append(("user", text))
+            flag = "ok" if cap.ok else "note"
+            self._transcript.append(("sys", f"[{flag}] {cap.message}"))
+            self._render_transcript()
+            if cap.updated_direction:
+                self.action_refresh_status()
+            return
+
         if not self.dialog:
-            self._transcript.append(("sys", "No model loaded."))
+            self._transcript.append(("sys", "No model loaded. Run `nex sage coach`."))
             self._render_transcript()
             return
+
+        self._quit_armed = False
         self._busy = True
-        self.query_one("#status", Static).update("Thinking…")
+        self.query_one("#status", Static).update("[Partner] Thinking…")
         self._transcript.append(("user", text))
         self._transcript.append(("sage", "…"))
         self._render_transcript()
@@ -186,7 +220,7 @@ class SageTUI(App):
         d = self.profile.build_direction()
         status = self.query_one("#status", Static)
         north = (d.get("north_star") or "")[:120]
-        status.update(f"Ready · direction: {north}…")
+        status.update(f"[Partner] Ready · direction: {north}…")
 
     def action_show_direction(self) -> None:
         path = self.profile.write_direction()
@@ -209,18 +243,58 @@ class SageTUI(App):
         self._transcript = [
             ("sys", "New chat thread. Profile (people, direction, commits) kept."),
         ]
+        # Re-show open ritual for continuity
+        snap = build_home_snapshot(self.profile_id)
+        self._set_log(
+            render_open_ritual_markdown(snap)
+            + "\n\n*New chat thread — profile kept.*"
+        )
+        self._transcript = []
+
+    def action_show_home(self) -> None:
+        snap = build_home_snapshot(self.profile_id)
+        self._transcript.append(("sys", render_open_ritual_markdown(snap)))
         self._render_transcript()
+        self.action_refresh_status()
 
     def action_refresh_status(self) -> None:
         if self._busy:
-            self.query_one("#status", Static).update("Thinking…")
+            self.query_one("#status", Static).update("[Partner] Thinking…")
+            return
+        if self._awaiting_quit_reflect:
+            self.query_one("#status", Static).update(
+                "[Partner] Quit: one-line reflection + Enter, or empty Enter to leave"
+            )
             return
         d = self.profile.build_direction()
         north = (d.get("north_star") or "no direction yet")[:100]
         model = Path(self.dialog.model_id).name if self.dialog else "no-model"
         self.query_one("#status", Static).update(
-            f"Ready · {model} · `{self.profile_id}` · {north}"
+            f"[Partner] Ready · {model} · `{self.profile_id}` · {north}"
         )
+
+    def action_quit_ritual(self) -> None:
+        """Rec 4: first Ctrl+Q arms quit; offer optional reflection."""
+        if self._awaiting_quit_reflect:
+            self.exit()
+            return
+        if self._quit_armed and not self._awaiting_quit_reflect:
+            # second path: already armed via message — go to reflect prompt
+            pass
+        self._quit_armed = True
+        self._awaiting_quit_reflect = True
+        self._busy = False
+        self._transcript.append(
+            (
+                "sys",
+                "Before quit (Partner): type **one sentence** for living direction and press Enter, "
+                "or press Enter empty / Ctrl+Q again to leave without saving.\n"
+                "*(Rails/Grok are separate — this only updates your sage profile.)*",
+            )
+        )
+        self._render_transcript()
+        self.action_refresh_status()
+        self.query_one("#input", Input).focus()
 
 
 def run_sage_tui(profile_id: str = "default", model_path: Optional[str] = None) -> None:

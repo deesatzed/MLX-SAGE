@@ -8,12 +8,18 @@ MLX-SAGE helps you find and live **purpose and meaning with AI**, not under it: 
 pip install -e ".[tui]"
 export PYTHONPATH=.
 
-# What models are already on this machine?
-python -m nex.cli sage models
+# Partnership home (north star, people, model & Grok status)
+python -m nex.cli home
+# or: python -m nex.cli sage
 
-# Talk with your sage partner (local MLX)
+# First-run coach if no model / empty profile
+python -m nex.cli sage coach
+
+# Talk with your sage partner (local MLX) — Partner mode
 python -m nex.cli sage tui
 ```
+
+**Modes:** **Partner** = `sage` / local MLX purpose chat. **Rails** = `supervise` / `agent` / optional XAI Grok — not your sage voice.
 
 ---
 
@@ -21,11 +27,13 @@ python -m nex.cli sage tui
 
 | Surface | Purpose |
 |---------|---------|
-| **`nex sage tui`** | Seamless dialogue with a local MLX model + your memory |
-| **Living direction** | `direction.md` built from your people, sits, commits, reflections |
+| **`nex home` / `nex sage`** | Partnership home — direction, people, commits, readiness |
+| **`nex sage coach`** | First-run: local model + thin profile (no Rails tour) |
+| **`nex sage tui`** | Partner dialogue + slash capture (`/commit`, `/person`, …) |
+| **Living direction** | `direction.md` from people, sits, commits, reflections |
 | **Hive cell (`nex we`)** | Co-goal + roles + joint beneficence + receipt |
-| **Superintendant** | Optional rails: supervise agents, propellant-capped Grok, WattOS report |
-| **Local multi-model Nex** | Chat, agent, serve, models registry for mlx-lm / OptiQ |
+| **Superintendant** | **Rails:** supervise agents, propellant Grok, WattOS |
+| **Local multi-model Nex** | Chat, agent, serve, models (substrate under Sage) |
 
 **Stance**
 
@@ -48,15 +56,19 @@ python -m nex.cli sage models
 python -m nex.cli sage tui
 ```
 
-**In the TUI**
+**In the TUI (Partner)**
 
-| Key | Action |
-|-----|--------|
-| Type + Enter | Talk |
+| Key / input | Action |
+|-------------|--------|
+| Type + Enter | Talk with local model |
+| `/commit text \| toward` | Save commitment to profile |
+| `/person Name \| relation` | Add person to mattering map |
+| `/reflect …` `/direction` `/receipt` `/help` | Capture & status |
 | Ctrl+D | Show / refresh direction |
+| Ctrl+H | Welcome-back / home summary |
 | Ctrl+E | Export shareable pack |
 | Ctrl+N | New chat thread (keeps profile) |
-| Ctrl+Q | Quit |
+| Ctrl+Q | Quit ritual (optional one-line reflection) |
 
 Optional structured helpers:
 
