@@ -866,14 +866,15 @@ alias codex='grok-codex'
 @app.command("home")
 def home_cmd(
     profile: str = typer.Option("default", "--profile", "-p"),
+    plain: bool = typer.Option(False, "--plain", help="Status only, no menu"),
 ):
-    """[Partner] Partnership home — north star, people, commits, model & Grok status."""
-    from .sage.home import build_home_snapshot, render_coach_text, render_home_text
+    """[Partner] Home — short status, then talk / setup / quit."""
+    from .sage.home import build_home_snapshot, render_home_text, run_home_menu
 
-    snap = build_home_snapshot(profile)
-    console.print(render_home_text(snap))
-    if snap.needs_coach:
-        console.print("\n[yellow]Tip:[/yellow] run [bold]nex sage coach[/bold] for first-run steps.\n")
+    if plain:
+        console.print(render_home_text(build_home_snapshot(profile)))
+        return
+    run_home_menu(profile)
 
 
 # ------------------------------------------------------------------
@@ -883,8 +884,8 @@ def home_cmd(
 sage_app = typer.Typer(
     name="sage",
     help=(
-        "[Partner] Protocol Sage — purpose partnership (local MLX), not a companion sim. "
-        "Default: partnership home. Rails/Grok live under supervise/agent."
+        "[Partner] Local sage for purpose & people. "
+        "Default opens home (talk / setup). Rails = supervise/agent."
     ),
     add_completion=False,
     invoke_without_command=True,
@@ -896,29 +897,31 @@ app.add_typer(sage_app, name="sage")
 def sage_root(
     ctx: typer.Context,
     profile: str = typer.Option("default", "--profile", "-p"),
+    plain: bool = typer.Option(False, "--plain", help="Status only, no menu"),
 ):
-    """Partnership home when no subcommand is given (UX Rec 1)."""
+    """Home menu when no subcommand (talk / setup / quit)."""
     if ctx.invoked_subcommand is not None:
         return
-    from .sage.home import build_home_snapshot, render_home_text
+    from .sage.home import build_home_snapshot, render_home_text, run_home_menu
 
-    snap = build_home_snapshot(profile)
-    console.print(render_home_text(snap))
-    if snap.needs_coach:
-        console.print("\n[yellow]Tip:[/yellow] run [bold]nex sage coach[/bold] for first-run steps.\n")
+    if plain:
+        console.print(render_home_text(build_home_snapshot(profile)))
+        return
+    run_home_menu(profile)
 
 
-@sage_app.command("coach")
-def sage_coach(
+@sage_app.command("setup")
+@sage_app.command("coach")  # alias — interactive, not a wall of CLI copy-paste
+def sage_setup(
     profile: str = typer.Option("default", "--profile", "-p"),
 ):
-    """[Partner] First-run coach — local model + thin profile only (no Rails tour)."""
-    from .sage.home import build_home_snapshot, render_coach_text
+    """[Partner] Interactive setup — asks questions, writes profile, can open chat."""
+    from .sage.home import run_interactive_setup
 
-    snap = build_home_snapshot(profile)
-    console.print(render_coach_text(snap))
+    run_interactive_setup(profile)
 
 
+@sage_app.command("talk")
 @sage_app.command("tui")
 def sage_tui(
     profile: str = typer.Option("default", "--profile", "-p"),
@@ -928,29 +931,23 @@ def sage_tui(
         "-m",
         help="Local model path (default: first complete MLX model found)",
     ),
-    skip_coach: bool = typer.Option(
-        False,
-        "--skip-coach",
-        help="Do not print first-run coach when model missing",
-    ),
 ):
-    """[Partner] Conversational Sage TUI — local model + your memory."""
+    """[Partner] Open sage chat (local MLX)."""
     from .sage.tui import run_sage_tui
-    from .sage.dialog import list_models_report
     from .sage.local_models import pick_default_local
-    from .sage.home import build_home_snapshot, render_coach_text
+    from .sage.home import run_interactive_setup
+    from rich.prompt import Confirm
 
     if not model:
         m = pick_default_local()
         if not m:
-            console.print("[red]No complete local MLX chat model found.[/red]")
-            if not skip_coach:
-                snap = build_home_snapshot(profile)
-                console.print(render_coach_text(snap))
+            console.print("[red]No READY local model.[/red]")
+            if Confirm.ask("Run interactive setup now?", default=True):
+                run_interactive_setup(profile, launch_tui=False)
             else:
-                console.print(list_models_report())
+                console.print("Install a model, then:  [bold]nex sage talk[/bold]")
             raise typer.Exit(1)
-        console.print(f"[dim]Using local model: {m.label} ({m.size_gb} GB) · Partner mode[/dim]")
+        console.print(f"[dim]{m.label} · Partner[/dim]")
         model = m.path
     run_sage_tui(profile_id=profile, model_path=model or None)
 

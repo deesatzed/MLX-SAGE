@@ -8,18 +8,18 @@ MLX-SAGE helps you find and live **purpose and meaning with AI**, not under it: 
 pip install -e ".[tui]"
 export PYTHONPATH=.
 
-# Partnership home (north star, people, model & Grok status)
+# Home: short status, then type talk / setup / quit
 python -m nex.cli home
 # or: python -m nex.cli sage
 
-# First-run coach if no model / empty profile
-python -m nex.cli sage coach
+# Interactive setup (asks questions — does not dump CLI recipes)
+python -m nex.cli sage setup
 
-# Talk with your sage partner (local MLX) — Partner mode
-python -m nex.cli sage tui
+# Partner chat
+python -m nex.cli sage talk
 ```
 
-**Modes:** **Partner** = `sage` / local MLX purpose chat. **Rails** = `supervise` / `agent` / optional XAI Grok — not your sage voice.
+**Modes:** **Partner** = local sage chat. **Rails** = `supervise` / `agent` / optional XAI Grok — not sage voice.
 
 ---
 

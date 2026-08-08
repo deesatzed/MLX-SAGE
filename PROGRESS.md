@@ -16,6 +16,12 @@ Destination: purpose via partnership + hives + joint beneficence + selfless.
 - Tests: `pytest tests/` **28/28** (includes `tests/test_tui_tool_policy.py`).
 - CI after P0: `.github/workflows/ci.yml` runs unit suite on push/PR (Python 3.11/3.12; no MLX weights).
 
+### UX fix: home/coach not a CLI wall (2026-08-08)
+- Home is a **short status card** + menu `talk | setup | quit` (not 5 copy-paste recipes)
+- `sage setup` / `sage coach` = **interactive questions** that write people/commits; optional open chat
+- Aliases: `sage talk` = tui; `--plain` for status-only
+- Removed tip spam and profile path dump from happy path
+
 ### UX Recs 1–5 (2026-08-07)
 - **Rec1** `nex home` / `nex sage` partnership home (north star, people, commits, model, Grok Rails status)
 - **Rec2** `nex sage coach` first-run (model + profile only; no supervise tour); tui missing-model prints coach

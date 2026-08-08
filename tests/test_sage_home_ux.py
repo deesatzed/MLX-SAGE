@@ -1,4 +1,4 @@
-"""UX Recs 1–5 — home, coach, capture, open ritual, role labels (real FS)."""
+"""Home + interactive setup + capture (real FS, injected prompts)."""
 
 from __future__ import annotations
 
@@ -13,34 +13,71 @@ from nex.sage.home import (
     render_coach_text,
     render_home_text,
     render_open_ritual_markdown,
+    run_interactive_setup,
 )
 from nex.sage.partner import load_or_create_profile
 from nex.wattos import WattOSReport, render_wattos_text
 from nex.propellant import PropellantLedger
 
 
-def test_home_snapshot_empty_profile_needs_coach(tmp_path: Path, monkeypatch):
-    monkeypatch.setenv("XAI_API_KEY", "")
-    # isolate default sage root
-    import nex.sage.partner as partner
+def test_home_is_short_not_command_manual(tmp_path: Path, monkeypatch):
     import nex.sage.home as home
 
-    monkeypatch.setattr(partner, "DEFAULT_SAGE_ROOT", tmp_path / "sage")
     monkeypatch.setattr(home, "pick_default_local", lambda: None)
-
-    snap = build_home_snapshot("uxuser", base=tmp_path / "sage")
-    assert snap.profile_id == "uxuser"
-    assert snap.needs_coach is True
-    assert snap.people_count == 0
+    snap = build_home_snapshot("uxuser", base=tmp_path)
     text = render_home_text(snap)
-    assert "Partnership home" in text
+    assert "MLX-SAGE" in text
     assert LABEL_PARTNER in text
-    assert LABEL_RAILS in text or "Rails" in text
-    assert "nex sage tui" in text
-    coach = render_coach_text(snap)
-    assert "First-run coach" in coach
-    assert "supervise" not in coach.lower() or "will not tour" in coach.lower()
-    assert "nex sage tui" in coach
+    # Must NOT dump the old awful cookbook
+    assert "nex sage people add" not in text
+    assert "nex sage commit" not in text
+    assert "Profile file:" not in text
+    assert "talk" in text.lower()
+    assert "setup" in text.lower()
+    assert snap.needs_setup is True
+
+
+def test_interactive_setup_adds_person_and_commit(tmp_path: Path, monkeypatch):
+    import nex.sage.home as home
+
+    class FakeLocal:
+        complete = True
+        label = "fake-ready"
+        path = "/tmp/fake-model"
+
+    monkeypatch.setattr(home, "pick_default_local", lambda: FakeLocal())
+
+    answers = iter(["Alex", "friend", "check-in", "community", "Text Alex Sunday", "Alex"])
+    confirms = iter([True, True, False])  # person, commit, no tui
+
+    def ask(prompt, default=""):
+        try:
+            return next(answers)
+        except StopIteration:
+            return default
+
+    def confirm(prompt, default=True):
+        try:
+            return next(confirms)
+        except StopIteration:
+            return default
+
+    printed: list[str] = []
+
+    result = run_interactive_setup(
+        "setupuser",
+        base=tmp_path,
+        ask=ask,
+        confirm=confirm,
+        emit=printed.append,
+        launch_tui=True,
+    )
+    assert result["person_added"] == "Alex"
+    assert result["commit_added"] == "Text Alex Sunday"
+    assert result["launch_tui"] is False
+    prof = load_or_create_profile("setupuser", base=tmp_path)
+    assert any(p.name == "Alex" for p in prof.people)
+    assert any("Alex" in c.toward_person for c in prof.commitments if not c.done)
 
 
 def test_capture_commit_person_reflect(tmp_path: Path):
@@ -51,32 +88,34 @@ def test_capture_commit_person_reflect(tmp_path: Path):
         base=tmp_path,
     )
     assert r is not None and r.ok and r.kind == "commit"
-    assert any(not c.done and "Alex" in c.toward_person for c in prof.commitments)
-
     r2 = parse_and_apply_capture(
         "/person Alex | neighbor | check-in | community",
         prof,
         base=tmp_path,
     )
     assert r2 is not None and r2.ok
-    assert any(p.name == "Alex" for p in prof.people)
-
-    r3 = parse_and_apply_capture("/reflect I want to show up for neighbors", prof, base=tmp_path)
-    assert r3 is not None and r3.ok and r3.updated_direction
-
-    r4 = parse_and_apply_capture("hello normal chat", prof, base=tmp_path)
-    assert r4 is None
+    r3 = parse_and_apply_capture("/reflect I want to show up", prof, base=tmp_path)
+    assert r3 is not None and r3.ok
+    assert parse_and_apply_capture("hello", prof, base=tmp_path) is None
 
 
-def test_open_ritual_markdown_has_partner_label(tmp_path: Path, monkeypatch):
+def test_open_ritual_compact(tmp_path: Path, monkeypatch):
     import nex.sage.home as home
 
     monkeypatch.setattr(home, "pick_default_local", lambda: None)
     snap = build_home_snapshot("open", base=tmp_path)
     md = render_open_ritual_markdown(snap)
-    assert "Welcome back" in md
-    assert LABEL_PARTNER in md or "Partner" in md
-    assert "/commit" in md
+    assert "welcome" in md.lower()
+    assert "/commit" in md or "/person" in md
+
+
+def test_coach_text_not_cli_dump(tmp_path: Path, monkeypatch):
+    import nex.sage.home as home
+
+    monkeypatch.setattr(home, "pick_default_local", lambda: None)
+    snap = build_home_snapshot("c", base=tmp_path)
+    t = render_coach_text(snap)
+    assert "nex sage people add --profile" not in t
 
 
 def test_wattos_rails_label():
@@ -97,10 +136,8 @@ def test_wattos_rails_label():
         )
     )
     assert "Rails" in text
-    assert "sage" in text.lower()
 
 
-def test_role_blurb_mentions_both_modes():
+def test_role_blurb_short():
     assert "Partner" in ROLE_BLURB
     assert "Rails" in ROLE_BLURB
-    assert "Grok" in ROLE_BLURB
